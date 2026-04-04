@@ -526,7 +526,18 @@ def main():
                 if text:
                     save_file(run_dir / f"{slug}.txt", text)
         except Exception as e:
-            print(f"FETCH ERROR: {e}")
+            print(f"FETCH ERROR: {e}", end="")
+            cached = cache.get(src["name"])
+            if cached and cached.get("events"):
+                print(f" → using cached {len(cached['events'])} events")
+                result["sources"].append({
+                    "name": src["name"],
+                    "url": src["url"],
+                    "content_length": 0,
+                    "events": cached["events"],
+                })
+            else:
+                print(" → no cache available, skipping")
             continue
 
         if not text:
