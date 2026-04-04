@@ -26,7 +26,10 @@
   .controls .count { margin-left: auto; color: #999; }
 
   /* Legend */
-  .legend { display: flex; gap: 16px; flex-wrap: wrap; padding: 10px 32px; background: #fff; border-bottom: 1px solid #eee; font-size: 12px; color: #666; }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; padding: 10px 32px; background: #fff; border-bottom: 1px solid #eee; font-size: 12px; color: #666; overflow: hidden; }
+  .legend-toggle { display: none; background: none; border: 1px solid #ccc; border-radius: 3px; font-size: 11px; color: #888; cursor: pointer; padding: 2px 8px; flex-shrink: 0; }
+  .legend-toggle::after { content: ' \25BE'; }
+  .legend.expanded .legend-toggle::after { content: ' \25B4'; }
   .legend-item { display: flex; align-items: center; gap: 5px; }
   .legend-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
   .legend-rec { display: inline-flex; align-items: center; gap: 4px; margin-left: 16px; padding-left: 16px; border-left: 1px solid #ddd; }
@@ -96,6 +99,9 @@
     .controls label { display: none; }
     .controls select { font-size: 12px; padding: 5px 6px; }
     .legend { padding: 8px 16px; gap: 10px; font-size: 11px; }
+    .legend .legend-item, .legend .legend-rec { display: none; }
+    .legend.expanded .legend-item, .legend.expanded .legend-rec { display: flex; }
+    .legend-toggle { display: inline-flex; }
     .legend-rec { margin-left: 8px; padding-left: 8px; }
     .gantt-container { max-height: calc(100vh - 280px); -webkit-overflow-scrolling: touch; }
     .gantt-month-cell { font-size: 11px; padding: 4px 0; }
@@ -223,7 +229,7 @@ function assignSourceColors() {
 
 function renderLegend() {
   const el = document.getElementById('legend');
-  let html = '';
+  let html = '<button class="legend-toggle" id="legendToggle">Sources</button>';
   DATA.sources.forEach(src => {
     if (!src.events.length) return;
     const c = sourceColors[src.name];
@@ -232,6 +238,9 @@ function renderLegend() {
   html += `<span class="legend-rec"><span class="legend-rec-dot" style="border-color:#e74c3c"></span>Must See</span>`;
   html += `<span class="legend-rec"><span class="legend-rec-dot" style="border-color:#f39c12"></span>Recommended</span>`;
   el.innerHTML = html;
+  document.getElementById('legendToggle').addEventListener('click', () => {
+    el.classList.toggle('expanded');
+  });
 }
 
 fetch('./result.json').then(r => { if (r.ok) return r.json(); throw 'not found'; })
