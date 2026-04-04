@@ -13,13 +13,10 @@ jobs:
 
       - uses: astral-sh/setup-uv@v4
 
-      - name: Install dependencies
-        run: uv pip install --system -r requirements.txt
-
       - name: Run scraper
         env:
           MINIMAX_API_KEY: ${{ secrets.MINIMAX_API_KEY }}
-        run: uv run scraper.py
+        run: uv run --with-requirements requirements.txt scraper.py
 
       - name: Commit caches and result
         run: |
