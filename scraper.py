@@ -34,7 +34,7 @@ SOURCES = [
     {"name": "森美術館", "url": "https://www.mori.art.museum/jp/exhibitions/index.html"},
     {"name": "21_21 DESIGN SIGHT", "url": "https://www.2121designsight.jp/"},
     {"name": "東京国立近代美術館", "url": "https://www.momat.go.jp/exhibitions"},
-    {"name": "寺田倉庫", "url": "https://warehouseofart.org/"},
+    {"name": "寺田倉庫", "url": "https://warehouseofart.org/", "list_selector": "li.frontEventItem"},
     {"name": "横浜美術館", "url": "https://yokohama.art.museum/exhibition/"},
     {"name": "エスパス ルイ・ヴィトン東京", "url": "https://www.espacelouisvuittontokyo.com/ja/detail"},
     {"name": "東京オペラシティアートギャラリー", "url": "https://www.operacity.jp/contents/exhibition/upcoming?lang=ja&ag_home=0"},
@@ -525,7 +525,15 @@ def main():
             else:
                 raw_html = fetch_page(src["url"])
                 save_file(run_dir / f"{slug}.html", raw_html)
-                text = clean_html(raw_html)
+                list_sel = src.get("list_selector")
+                if list_sel:
+                    soup = BeautifulSoup(raw_html, "html.parser")
+                    items = soup.select(list_sel)
+                    texts = [re.sub(r"\n{3,}", "\n\n", el.get_text(separator="\n").strip()) for el in items]
+                    texts.sort()
+                    text = "\n\n".join(texts) if texts else None
+                else:
+                    text = clean_html(raw_html)
                 if text:
                     save_file(run_dir / f"{slug}.txt", text)
         except Exception as e:

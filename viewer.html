@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%231a1a1a'/><text x='16' y='23' text-anchor='middle' font-family='Georgia,serif' font-size='20' font-weight='bold' fill='%23fff'>A</text></svg>">
 <title>Tokyo Art Calendar</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -12,8 +13,9 @@
   .header-left {}
   .header h1 { font-size: 18px; font-weight: 500; letter-spacing: 0.05em; }
   .header .meta { font-size: 13px; color: #999; margin-top: 2px; }
-  .theme-toggle { background: none; border: 1px solid #555; color: #ccc; padding: 4px 10px; border-radius: 4px; font-size: 12px; cursor: pointer; }
-  .theme-toggle:hover { border-color: #999; color: #fff; }
+  .theme-toggle { background: none; border: none; cursor: pointer; width: 28px; height: 28px; padding: 0; display: flex; align-items: center; justify-content: center; transition: transform 0.4s ease; }
+  .theme-toggle svg { width: 22px; height: 22px; }
+  [data-theme="dark"] .theme-toggle { transform: rotate(180deg); }
 
   .tabs { display: flex; background: #fff; border-bottom: 2px solid #e0e0e0; padding: 0 32px; }
   .tab { padding: 10px 20px; font-size: 14px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; color: #888; }
@@ -142,7 +144,7 @@
     <h1>Tokyo Art Calendar</h1>
     <div class="meta" id="meta">Loading...</div>
   </div>
-  <button class="theme-toggle" id="themeToggle">Dark</button>
+  <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#fff"/><path d="M12 2 A10 10 0 0 1 12 22 Z" fill="#1a1a1a"/></svg></button>
 </div>
 
 <div class="tabs">
@@ -190,7 +192,6 @@ function getTheme() {
 }
 function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
-  document.getElementById('themeToggle').textContent = theme === 'dark' ? 'Light' : 'Dark';
 }
 applyTheme(getTheme());
 document.getElementById('themeToggle').addEventListener('click', () => {
