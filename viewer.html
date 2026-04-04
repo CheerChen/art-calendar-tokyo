@@ -8,11 +8,9 @@
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: -apple-system, 'Hiragino Sans', sans-serif; background: #f5f5f0; color: #333; line-height: 1.6; }
 
-  .header { background: #1a1a1a; color: #fff; padding: 20px 32px; display: flex; align-items: center; justify-content: space-between; }
+  .header { background: #1a1a1a; color: #fff; padding: 16px 32px; }
   .header h1 { font-size: 18px; font-weight: 500; letter-spacing: 0.05em; }
   .header .meta { font-size: 13px; color: #999; margin-top: 2px; }
-  .header input[type="file"] { font-size: 13px; color: #ccc; }
-
 
   .controls { padding: 12px 32px; background: #fff; border-bottom: 1px solid #e0e0e0; display: flex; gap: 12px; align-items: center; font-size: 13px; flex-wrap: wrap; }
   .controls select { font-size: 13px; padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; }
@@ -25,9 +23,8 @@
   .legend-rec { display: inline-flex; align-items: center; gap: 4px; margin-left: 16px; padding-left: 16px; border-left: 1px solid #ddd; }
   .legend-rec-dot { width: 8px; height: 8px; border-radius: 50%; border: 2px solid; flex-shrink: 0; }
 
-
   /* Gantt timeline */
-  .gantt-container { overflow-x: auto; overflow-y: auto; max-height: calc(100vh - 260px); }
+  .gantt-container { overflow-x: auto; overflow-y: auto; max-height: calc(100vh - 220px); }
   .gantt { display: grid; min-width: 100%; position: relative; }
 
   .gantt-month-cell { background: #eee; text-align: center; font-size: 13px; font-weight: 600; padding: 6px 0; border-right: 1px solid #ddd; border-bottom: 1px solid #ccc; position: sticky; top: 0; z-index: 11; }
@@ -61,18 +58,33 @@
   .tooltip .tt-info div { margin: 2px 0; }
   .tooltip .tt-summary { margin-top: 8px; color: #ddd; font-size: 12px; border-top: 1px solid #333; padding-top: 8px; }
 
-  .drop-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 9999; justify-content: center; align-items: center; font-size: 20px; color: #fff; letter-spacing: 0.1em; }
-  .drop-overlay.active { display: flex; }
+  /* Mobile */
+  @media (max-width: 768px) {
+    .header { padding: 12px 16px; }
+    .header h1 { font-size: 16px; }
+    .controls { padding: 10px 16px; gap: 8px; }
+    .controls label { display: none; }
+    .controls select { font-size: 12px; padding: 5px 6px; }
+    .legend { padding: 8px 16px; gap: 10px; font-size: 11px; }
+    .legend-rec { margin-left: 8px; padding-left: 8px; }
+    .gantt-container { max-height: calc(100vh - 180px); -webkit-overflow-scrolling: touch; }
+    .gantt-month-cell { font-size: 11px; padding: 4px 0; }
+    .gantt-day-cell { font-size: 9px; padding: 2px 0; }
+    .gantt-bar { height: 22px; margin: 2px 0; }
+    .gantt-bar .bar-label { font-size: 10px; }
+    .gantt-bar .bar-rec { font-size: 8px; }
+    .gantt-cell { min-height: 28px; }
+    div[style*="padding: 24px 32px"] { padding: 12px 16px !important; }
+    .tooltip { max-width: 280px; font-size: 12px; }
+    .tooltip .tt-title { font-size: 14px; }
+  }
 </style>
 </head>
 <body>
 
 <div class="header">
-  <div>
-    <h1>Tokyo Art Beat</h1>
-    <div class="meta" id="meta">Drop or select result.json to load</div>
-  </div>
-  <input type="file" accept=".json" id="fileInput">
+  <h1>Tokyo Art Beat</h1>
+  <div class="meta" id="meta">Loading...</div>
 </div>
 
 
@@ -102,7 +114,6 @@
 </div>
 
 <div class="tooltip" id="tooltip"></div>
-<div class="drop-overlay" id="dropOverlay">Drop result.json here</div>
 
 <script>
 let DATA = null;
@@ -136,23 +147,9 @@ function renderLegend() {
   el.innerHTML = html;
 }
 
-// Auto-load result.json from same directory, fallback to file picker / drag-drop
 fetch('./result.json').then(r => { if (r.ok) return r.json(); throw 'not found'; })
   .then(d => { DATA = d; init(); })
-  .catch(() => { document.getElementById('meta').textContent = 'result.json not found — drop or select a file'; });
-
-document.getElementById('fileInput').addEventListener('change', e => {
-  const file = e.target.files[0];
-  if (file) file.text().then(t => { DATA = JSON.parse(t); init(); });
-});
-document.body.addEventListener('dragover', e => { e.preventDefault(); document.getElementById('dropOverlay').classList.add('active'); });
-document.body.addEventListener('dragleave', e => { if (e.target === document.getElementById('dropOverlay')) document.getElementById('dropOverlay').classList.remove('active'); });
-document.body.addEventListener('drop', e => {
-  e.preventDefault();
-  document.getElementById('dropOverlay').classList.remove('active');
-  const file = e.dataTransfer.files[0];
-  if (file) file.text().then(t => { DATA = JSON.parse(t); init(); });
-});
+  .catch(() => { document.getElementById('meta').textContent = 'result.json not found'; });
 
 
 function init() {
@@ -344,13 +341,30 @@ function renderGantt(events) {
     container.scrollLeft = Math.max(0, todayIdx * cellWidth - 100);
   }
 
-  // Events
+  // Events — desktop: hover tooltip + click opens URL; mobile: tap shows tooltip, second tap opens URL
+  const isMobile = 'ontouchstart' in window;
+  let activeBarIdx = -1;
   container.querySelectorAll('.gantt-bar').forEach(bar => {
     const idx = parseInt(bar.dataset.idx);
-    bar.addEventListener('mouseenter', e => showTooltip(e, events[idx]));
-    bar.addEventListener('mouseleave', () => tooltip.style.display = 'none');
-    bar.addEventListener('click', () => { if (events[idx].url) window.open(events[idx].url, '_blank'); });
+    if (isMobile) {
+      bar.addEventListener('click', e => {
+        e.stopPropagation();
+        if (activeBarIdx === idx) {
+          if (events[idx].url) window.open(events[idx].url, '_blank');
+        } else {
+          activeBarIdx = idx;
+          showTooltip(e, events[idx]);
+        }
+      });
+    } else {
+      bar.addEventListener('mouseenter', e => showTooltip(e, events[idx]));
+      bar.addEventListener('mouseleave', () => tooltip.style.display = 'none');
+      bar.addEventListener('click', () => { if (events[idx].url) window.open(events[idx].url, '_blank'); });
+    }
   });
+  if (isMobile) {
+    document.addEventListener('click', () => { tooltip.style.display = 'none'; activeBarIdx = -1; });
+  }
 }
 
 
