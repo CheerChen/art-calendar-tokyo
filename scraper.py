@@ -29,8 +29,8 @@ SOURCES = [
     },
     {"name": "国立西洋美術館", "url": "https://www.nmwa.go.jp/jp/exhibitions/current.html"},
     {"name": "上野の森美術館", "url": "https://www.ueno-mori.org/exhibitions/"},
-    {"name": "東京都美術館", "url": "https://www.tobikan.jp/exhibition/index.html"},
-    {"name": "アーティゾン美術館", "url": "https://www.artizon.museum/exhibition/"},
+    {"name": "東京都美術館", "url": "https://www.tobikan.jp/exhibition/index.html", "list_selector": "section.container.mt30.s-mt15 a.exhibition-item"},
+    {"name": "アーティゾン美術館", "url": "https://www.artizon.museum/exhibition/", "list_selector": "div.case", "link_selector": "a[href*='/exhibition/detail/']"},
     {"name": "森美術館", "url": "https://www.mori.art.museum/jp/exhibitions/index.html"},
     {"name": "21_21 DESIGN SIGHT", "url": "https://www.2121designsight.jp/"},
     {"name": "東京国立近代美術館", "url": "https://www.momat.go.jp/exhibitions"},
@@ -381,7 +381,7 @@ PARSERS = {
 def _call_enrich_llm(client: anthropic.Anthropic, system_prompt: str, user_msg: str) -> list:
     """Call LLM for enrichment, return parsed list."""
     resp = client.messages.create(
-        model="MiniMax-M2.7-highspeed",
+        model="MiniMax-M2.7",
         max_tokens=8192,
         system=system_prompt,
         messages=[{"role": "user", "content": user_msg}],
@@ -456,7 +456,7 @@ def enrich_events(client: anthropic.Anthropic, events: list, detail_texts: dict 
 def extract_events(client: anthropic.Anthropic, source_name: str, source_url: str, text: str) -> list:
     user_msg = f"Source: {source_name}\nURL: {source_url}\n\nPage content:\n{text}"
     resp = client.messages.create(
-        model="MiniMax-M2.7-highspeed",
+        model="MiniMax-M2.7",
         max_tokens=8192,
         system=SYSTEM_PROMPT_TEMPLATE.format(today=datetime.now(timezone.utc).strftime("%Y-%m-%d")),
         messages=[
@@ -529,9 +529,26 @@ def main():
                 if list_sel:
                     soup = BeautifulSoup(raw_html, "html.parser")
                     items = soup.select(list_sel)
-                    texts = [re.sub(r"\n{3,}", "\n\n", el.get_text(separator="\n").strip()) for el in items]
-                    texts.sort()
-                    text = "\n\n".join(texts) if texts else None
+                    link_sel = src.get("link_selector")
+                    base_url = "/".join(src["url"].split("/", 3)[:3])
+                    parts = []
+                    for el in items:
+                        el_text = re.sub(r"\n{3,}", "\n\n", el.get_text(separator="\n").strip())
+                        a = None
+                        if link_sel:
+                            a = el.select_one(link_sel)
+                        elif el.name == "a" and el.get("href"):
+                            a = el
+                        if a and a.get("href"):
+                            href = a["href"]
+                            if href.startswith("/"):
+                                href = base_url + href
+                            elif not href.startswith("http"):
+                                href = src["url"].rsplit("/", 1)[0] + "/" + href
+                            el_text = f"[URL: {href}]\n{el_text}"
+                        parts.append(el_text)
+                    parts.sort()
+                    text = "\n\n".join(parts) if parts else None
                 else:
                     text = clean_html(raw_html)
                 if text:
