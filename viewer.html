@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tokyo Art Beat - Calendar</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, 'Hiragino Sans', sans-serif; background: #f5f5f0; color: #333; line-height: 1.6; }
+
+  .header { background: #1a1a1a; color: #fff; padding: 20px 32px; display: flex; align-items: center; justify-content: space-between; }
+  .header h1 { font-size: 18px; font-weight: 500; letter-spacing: 0.05em; }
+  .header .meta { font-size: 13px; color: #999; margin-top: 2px; }
+  .header input[type="file"] { font-size: 13px; color: #ccc; }
+
+
+  .controls { padding: 12px 32px; background: #fff; border-bottom: 1px solid #e0e0e0; display: flex; gap: 12px; align-items: center; font-size: 13px; flex-wrap: wrap; }
+  .controls select { font-size: 13px; padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; }
+  .controls .count { margin-left: auto; color: #999; }
+
+  /* Legend */
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; padding: 10px 32px; background: #fff; border-bottom: 1px solid #eee; font-size: 12px; color: #666; }
+  .legend-item { display: flex; align-items: center; gap: 5px; }
+  .legend-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+  .legend-rec { display: inline-flex; align-items: center; gap: 4px; margin-left: 16px; padding-left: 16px; border-left: 1px solid #ddd; }
+  .legend-rec-dot { width: 8px; height: 8px; border-radius: 50%; border: 2px solid; flex-shrink: 0; }
+
+
+  /* Gantt timeline */
+  .gantt-container { overflow-x: auto; overflow-y: auto; max-height: calc(100vh - 260px); }
+  .gantt { display: grid; min-width: 100%; position: relative; }
+
+  .gantt-month-cell { background: #eee; text-align: center; font-size: 13px; font-weight: 600; padding: 6px 0; border-right: 1px solid #ddd; border-bottom: 1px solid #ccc; position: sticky; top: 0; z-index: 11; }
+  .gantt-day-cell { background: #f9f9f9; text-align: center; font-size: 11px; padding: 3px 0; border-right: 1px solid #eee; border-bottom: 1px solid #ddd; position: sticky; top: 30px; z-index: 11; color: #666; }
+  .gantt-day-cell.weekend { background: #f0ede8; color: #c0392b; }
+  .gantt-day-cell.today { background: #2c3e50; color: #fff; font-weight: 700; }
+
+  .gantt-label { display: none; }
+
+  .gantt-cell { border-right: 1px solid #f0f0f0; border-bottom: 1px solid #eee; background: #fff; min-height: 34px; }
+  .gantt-cell.weekend { background: #faf8f5; }
+
+  .gantt-bar { height: 26px; margin: 3px 0; border-radius: 3px; cursor: pointer; position: relative; opacity: 0.9; display: flex; align-items: center; padding: 0 6px; overflow: hidden; white-space: nowrap; }
+  .gantt-bar:hover { opacity: 1; box-shadow: 0 2px 8px rgba(0,0,0,0.25); z-index: 6; }
+  .bar-star { color: #ffd700; font-size: 14px; flex-shrink: 0; line-height: 1; pointer-events: none; text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+  .bar-diamond { color: rgba(255,255,255,0.85); font-size: 10px; flex-shrink: 0; line-height: 1; pointer-events: none; }
+  .gantt-bar .bar-label { font-size: 11px; color: #fff; text-overflow: ellipsis; overflow: hidden; text-shadow: 0 1px 2px rgba(0,0,0,0.3); pointer-events: none; }
+  .gantt-bar .bar-rec { font-size: 9px; background: rgba(0,0,0,0.25); color: #fff; padding: 1px 4px; border-radius: 3px; margin-right: 4px; flex-shrink: 0; pointer-events: none; }
+
+  /* Today line */
+  .gantt-today-line { position: absolute; top: 0; bottom: 0; width: 2px; background: #e74c3c; z-index: 8; pointer-events: none; }
+
+  /* Tooltip */
+  .tooltip { display: none; position: fixed; background: #1a1a1a; color: #fff; padding: 14px 18px; border-radius: 8px; font-size: 13px; line-height: 1.7; max-width: 400px; z-index: 1000; pointer-events: none; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+  .tooltip .tt-title { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+  .tooltip .tt-venue { color: #aaa; font-size: 12px; }
+  .tooltip .tt-badge { display: inline-block; font-size: 11px; padding: 1px 8px; border-radius: 8px; margin-top: 4px; }
+  .tooltip .tt-badge.must_see { background: #e74c3c; color: #fff; }
+  .tooltip .tt-badge.recommended { background: #f39c12; color: #fff; }
+  .tooltip .tt-info { margin-top: 8px; color: #ccc; font-size: 12px; }
+  .tooltip .tt-info div { margin: 2px 0; }
+  .tooltip .tt-summary { margin-top: 8px; color: #ddd; font-size: 12px; border-top: 1px solid #333; padding-top: 8px; }
+
+  .drop-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 9999; justify-content: center; align-items: center; font-size: 20px; color: #fff; letter-spacing: 0.1em; }
+  .drop-overlay.active { display: flex; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>Tokyo Art Beat</h1>
+    <div class="meta" id="meta">Drop or select result.json to load</div>
+  </div>
+  <input type="file" accept=".json" id="fileInput">
+</div>
+
+
+<div class="controls">
+  <label>Filter:</label>
+  <select id="filterRec">
+    <option value="all">All</option>
+    <option value="recommended">Recommended+</option>
+    <option value="must_see">Must See</option>
+  </select>
+  <select id="filterSource">
+    <option value="all">All Sources</option>
+  </select>
+  <label>Sort:</label>
+  <select id="sortBy">
+    <option value="date">By Date</option>
+    <option value="source">By Source</option>
+    <option value="recommendation">By Recommendation</option>
+  </select>
+  <div class="count" id="count"></div>
+</div>
+
+<div class="legend" id="legend"></div>
+
+<div style="padding: 24px 32px;">
+  <div class="gantt-container" id="ganttContainer"></div>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+<div class="drop-overlay" id="dropOverlay">Drop result.json here</div>
+
+<script>
+let DATA = null;
+let allEvents = [];
+let sourceColors = {};
+
+// 14 distinct, accessible hues for sources
+const SOURCE_PALETTE = [
+  '#4a90d9', '#d94452', '#27ae60', '#8e44ad', '#e67e22',
+  '#16a085', '#c0392b', '#2980b9', '#d4ac0d', '#7f8c8d',
+  '#e84393', '#6c5ce7', '#00b894', '#fd79a8',
+];
+
+function assignSourceColors() {
+  sourceColors = {};
+  DATA.sources.forEach((src, i) => {
+    sourceColors[src.name] = SOURCE_PALETTE[i % SOURCE_PALETTE.length];
+  });
+}
+
+function renderLegend() {
+  const el = document.getElementById('legend');
+  let html = '';
+  DATA.sources.forEach(src => {
+    if (!src.events.length) return;
+    const c = sourceColors[src.name];
+    html += `<div class="legend-item"><span class="legend-swatch" style="background:${c}"></span>${src.name}</div>`;
+  });
+  html += `<span class="legend-rec"><span class="legend-rec-dot" style="border-color:#e74c3c"></span>Must See</span>`;
+  html += `<span class="legend-rec"><span class="legend-rec-dot" style="border-color:#f39c12"></span>Recommended</span>`;
+  el.innerHTML = html;
+}
+
+// Auto-load result.json from same directory, fallback to file picker / drag-drop
+fetch('./result.json').then(r => { if (r.ok) return r.json(); throw 'not found'; })
+  .then(d => { DATA = d; init(); })
+  .catch(() => { document.getElementById('meta').textContent = 'result.json not found — drop or select a file'; });
+
+document.getElementById('fileInput').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (file) file.text().then(t => { DATA = JSON.parse(t); init(); });
+});
+document.body.addEventListener('dragover', e => { e.preventDefault(); document.getElementById('dropOverlay').classList.add('active'); });
+document.body.addEventListener('dragleave', e => { if (e.target === document.getElementById('dropOverlay')) document.getElementById('dropOverlay').classList.remove('active'); });
+document.body.addEventListener('drop', e => {
+  e.preventDefault();
+  document.getElementById('dropOverlay').classList.remove('active');
+  const file = e.dataTransfer.files[0];
+  if (file) file.text().then(t => { DATA = JSON.parse(t); init(); });
+});
+
+
+function init() {
+  allEvents = [];
+  const sourceSelect = document.getElementById('filterSource');
+  sourceSelect.innerHTML = '<option value="all">All Sources</option>';
+
+  assignSourceColors();
+
+  DATA.sources.forEach(src => {
+    const opt = document.createElement('option');
+    opt.value = src.name;
+    opt.textContent = `${src.name} (${src.events.length})`;
+    sourceSelect.appendChild(opt);
+    src.events.forEach(ev => allEvents.push({ ...ev, _source: src.name }));
+  });
+
+  document.getElementById('meta').textContent = `${DATA.fetched_at.split('T')[0]} | ${DATA.sources.length} sources | ${allEvents.length} events`;
+  renderLegend();
+
+  document.getElementById('filterRec').onchange = render;
+  document.getElementById('filterSource').onchange = render;
+  document.getElementById('sortBy').onchange = render;
+  render();
+}
+
+function getFiltered() {
+  const recFilter = document.getElementById('filterRec').value;
+  const srcFilter = document.getElementById('filterSource').value;
+  return allEvents.filter(e => {
+    if (recFilter === 'must_see' && e.recommendation !== 'must_see') return false;
+    if (recFilter === 'recommended' && e.recommendation === 'normal') return false;
+    if (srcFilter !== 'all' && e._source !== srcFilter) return false;
+    return true;
+  });
+}
+
+function render() {
+  const events = getFiltered();
+  document.getElementById('count').textContent = `${events.length} events`;
+  renderGantt(events);
+}
+
+// Tooltip
+const tooltip = document.getElementById('tooltip');
+function showTooltip(e, ev) {
+  const rec = ev.recommendation || 'normal';
+  const recLabels = { must_see: 'Must See', recommended: 'Recommended' };
+  let html = `<div class="tt-title">${esc(ev.title)}</div>`;
+  html += `<div class="tt-venue">${esc(ev.venue || '')} - ${esc(ev._source)}</div>`;
+  if (recLabels[rec]) html += `<span class="tt-badge ${rec}">${recLabels[rec]}</span>`;
+  html += `<div class="tt-info">`;
+  html += `<div>${ev.start_date || '?'} ~ ${ev.end_date || '?'}</div>`;
+  if (ev.start_time) html += `<div>${ev.start_time}${ev.end_time ? ' - ' + ev.end_time : ''}</div>`;
+  if (ev.admission) html += `<div>${esc(ev.admission)}</div>`;
+  if (ev.closed_days) html += `<div>休館: ${esc(ev.closed_days)}</div>`;
+  if (ev.reservation_required) html += `<div>要予約</div>`;
+  html += `</div>`;
+  if (ev.summary) html += `<div class="tt-summary">${esc(ev.summary)}</div>`;
+  tooltip.innerHTML = html;
+  tooltip.style.display = 'block';
+  positionTooltip(e);
+}
+function positionTooltip(e) {
+  let x = e.clientX + 14, y = e.clientY + 14;
+  const rect = tooltip.getBoundingClientRect();
+  if (x + 400 > window.innerWidth) x = e.clientX - 410;
+  if (y + rect.height > window.innerHeight) y = e.clientY - rect.height - 14;
+  tooltip.style.left = x + 'px';
+  tooltip.style.top = y + 'px';
+}
+document.addEventListener('mousemove', e => { if (tooltip.style.display === 'block') positionTooltip(e); });
+
+// ---- GANTT ----
+function renderGantt(events) {
+  const container = document.getElementById('ganttContainer');
+  if (!events.length) { container.innerHTML = '<p style="padding:60px;color:#999;text-align:center">No events</p>'; return; }
+
+  const today = new Date().toISOString().slice(0, 10);
+
+  // Start from today, extend to cover all events' end dates
+  let minDate = today;
+  let maxDate = today;
+  events.forEach(e => {
+    // Include events that started before today but haven't ended
+    if (e.end_date && e.end_date > today && e.start_date && e.start_date < minDate) minDate = e.start_date;
+    if (e.end_date && e.end_date > maxDate) maxDate = e.end_date;
+  });
+
+  // Extend to full months
+  minDate = minDate.slice(0, 7) + '-01';
+  const maxD = new Date(maxDate);
+  maxD.setMonth(maxD.getMonth() + 1, 0);
+  maxDate = maxD.toISOString().slice(0, 10);
+
+  const days = [];
+  let d = new Date(minDate);
+  const endD = new Date(maxDate);
+  while (d <= endD) {
+    days.push(d.toISOString().slice(0, 10));
+    d.setDate(d.getDate() + 1);
+  }
+
+  // Sort
+  const recOrder = { must_see: 0, recommended: 1, normal: 2 };
+  const sortBy = document.getElementById('sortBy').value;
+  const sourceOrder = {};
+  DATA.sources.forEach((s, i) => sourceOrder[s.name] = i);
+
+  if (sortBy === 'source') {
+    events.sort((a, b) => (sourceOrder[a._source] ?? 99) - (sourceOrder[b._source] ?? 99)
+      || (recOrder[a.recommendation] ?? 2) - (recOrder[b.recommendation] ?? 2)
+      || (a.start_date || '').localeCompare(b.start_date || ''));
+  } else if (sortBy === 'date') {
+    events.sort((a, b) => (a.start_date || '9999').localeCompare(b.start_date || '9999')
+      || (recOrder[a.recommendation] ?? 2) - (recOrder[b.recommendation] ?? 2));
+  } else {
+    events.sort((a, b) => (recOrder[a.recommendation] ?? 2) - (recOrder[b.recommendation] ?? 2)
+      || (a.start_date || '').localeCompare(b.start_date || ''));
+  }
+
+  let html = `<div class="gantt" style="grid-template-columns: repeat(${days.length}, minmax(16px, 1fr)); position: relative;">`;
+
+  // Month header
+  let col = 1, i = 0;
+  while (i < days.length) {
+    const month = days[i].slice(0, 7);
+    let span = 0;
+    while (i + span < days.length && days[i + span].slice(0, 7) === month) span++;
+    const mNum = parseInt(month.slice(5));
+    const yr = month.slice(0, 4);
+    html += `<div class="gantt-month-cell" style="grid-column: ${col} / span ${span};">${yr}/${mNum}月</div>`;
+    col += span;
+    i += span;
+  }
+
+  // Day header
+  days.forEach((day, idx) => {
+    const dt = new Date(day);
+    const dow = dt.getDay();
+    const isWeekend = dow === 0 || dow === 6;
+    const isToday = day === today;
+    const cls = [isWeekend ? 'weekend' : '', isToday ? 'today' : ''].filter(Boolean).join(' ');
+    html += `<div class="gantt-day-cell ${cls}" style="grid-column: ${idx + 1};">${dt.getDate()}</div>`;
+  });
+
+  // Event rows
+  events.forEach((ev, evIdx) => {
+    const rec = ev.recommendation || 'normal';
+    const srcColor = sourceColors[ev._source] || '#999';
+    const row = evIdx + 3;
+
+    // Background cells
+    days.forEach((day, idx) => {
+      const dt = new Date(day);
+      const isWeekend = dt.getDay() === 0 || dt.getDay() === 6;
+      html += `<div class="gantt-cell${isWeekend ? ' weekend' : ''}" style="grid-row: ${row}; grid-column: ${idx + 1};"></div>`;
+    });
+
+    // Bar with inline label
+    if (ev.start_date && ev.end_date) {
+      let startIdx = days.indexOf(ev.start_date);
+      let endIdx = days.indexOf(ev.end_date);
+      if (startIdx < 0 && ev.start_date < days[0]) startIdx = 0;
+      if (endIdx < 0 && ev.end_date > days[days.length - 1]) endIdx = days.length - 1;
+      if (startIdx >= 0 && endIdx >= 0 && endIdx >= startIdx) {
+        const colStart = startIdx + 1;
+        const colSpan = endIdx - startIdx + 1;
+        const recIcon = rec === 'must_see' ? '<span class="bar-star">★</span>' : rec === 'recommended' ? '<span class="bar-diamond">◆</span>' : '';
+        const srcTag = `<span class="bar-rec">${esc(ev._source)}</span>`;
+        html += `<div class="gantt-bar ${rec}" data-idx="${evIdx}" style="grid-row: ${row}; grid-column: ${colStart} / span ${colSpan}; background: ${srcColor};">${recIcon}${srcTag}<span class="bar-label">${esc(ev.title)}</span></div>`;
+      }
+    }
+  });
+
+  // Today line
+  const todayIdx = days.indexOf(today);
+  if (todayIdx >= 0) {
+    const totalRows = events.length + 2;
+    html += `<div class="gantt-today-line" style="grid-column: ${todayIdx + 1}; grid-row: 1 / span ${totalRows};"></div>`;
+  }
+
+  html += `</div>`;
+  container.innerHTML = html;
+
+  // Scroll to today
+  if (todayIdx >= 0) {
+    const cellWidth = container.querySelector('.gantt-day-cell:nth-child(3)')?.offsetWidth || 18;
+    container.scrollLeft = Math.max(0, todayIdx * cellWidth - 100);
+  }
+
+  // Events
+  container.querySelectorAll('.gantt-bar').forEach(bar => {
+    const idx = parseInt(bar.dataset.idx);
+    bar.addEventListener('mouseenter', e => showTooltip(e, events[idx]));
+    bar.addEventListener('mouseleave', () => tooltip.style.display = 'none');
+    bar.addEventListener('click', () => { if (events[idx].url) window.open(events[idx].url, '_blank'); });
+  });
+}
+
+
+function esc(s) {
+  if (!s) return '';
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>
