@@ -39,4 +39,5 @@ jobs:
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: e77f59c260bfe0ae47e1e998e989eea0
           command: pages deploy dist --project-name=art-calendar-tokyo
