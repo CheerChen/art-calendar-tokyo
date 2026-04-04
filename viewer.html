@@ -214,10 +214,15 @@ function showTooltip(e, ev) {
   positionTooltip(e);
 }
 function positionTooltip(e) {
+  tooltip.style.left = '0px';
+  tooltip.style.top = '0px';
+  const tt = tooltip.getBoundingClientRect();
+  const vw = window.innerWidth, vh = window.innerHeight;
   let x = e.clientX + 14, y = e.clientY + 14;
-  const rect = tooltip.getBoundingClientRect();
-  if (x + 400 > window.innerWidth) x = e.clientX - 410;
-  if (y + rect.height > window.innerHeight) y = e.clientY - rect.height - 14;
+  if (x + tt.width > vw) x = Math.max(4, vw - tt.width - 4);
+  if (y + tt.height > vh) y = Math.max(4, e.clientY - tt.height - 14);
+  if (x < 4) x = 4;
+  if (y < 4) y = 4;
   tooltip.style.left = x + 'px';
   tooltip.style.top = y + 'px';
 }
@@ -335,10 +340,10 @@ function renderGantt(events) {
   html += `</div>`;
   container.innerHTML = html;
 
-  // Scroll to today
-  if (todayIdx >= 0) {
-    const cellWidth = container.querySelector('.gantt-day-cell:nth-child(3)')?.offsetWidth || 18;
-    container.scrollLeft = Math.max(0, todayIdx * cellWidth - 100);
+  // Scroll to today line
+  const todayLine = container.querySelector('.gantt-today-line');
+  if (todayLine) {
+    container.scrollLeft = Math.max(0, todayLine.offsetLeft - container.clientWidth / 3);
   }
 
   // Events — desktop: hover tooltip + click opens URL; mobile: tap shows tooltip, second tap opens URL
