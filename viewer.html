@@ -3,14 +3,21 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tokyo Art Beat - Calendar</title>
+<title>Tokyo Art Calendar</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: -apple-system, 'Hiragino Sans', sans-serif; background: #f5f5f0; color: #333; line-height: 1.6; }
 
-  .header { background: #1a1a1a; color: #fff; padding: 16px 32px; }
+  .header { background: #1a1a1a; color: #fff; padding: 16px 32px; display: flex; align-items: center; justify-content: space-between; }
+  .header-left {}
   .header h1 { font-size: 18px; font-weight: 500; letter-spacing: 0.05em; }
   .header .meta { font-size: 13px; color: #999; margin-top: 2px; }
+  .theme-toggle { background: none; border: 1px solid #555; color: #ccc; padding: 4px 10px; border-radius: 4px; font-size: 12px; cursor: pointer; }
+  .theme-toggle:hover { border-color: #999; color: #fff; }
+
+  .tabs { display: flex; background: #fff; border-bottom: 2px solid #e0e0e0; padding: 0 32px; }
+  .tab { padding: 10px 20px; font-size: 14px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; color: #888; }
+  .tab.active { color: #1a1a1a; border-bottom-color: #1a1a1a; font-weight: 600; }
 
   .controls { padding: 12px 32px; background: #fff; border-bottom: 1px solid #e0e0e0; display: flex; gap: 12px; align-items: center; font-size: 13px; flex-wrap: wrap; }
   .controls select { font-size: 13px; padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; }
@@ -24,7 +31,7 @@
   .legend-rec-dot { width: 8px; height: 8px; border-radius: 50%; border: 2px solid; flex-shrink: 0; }
 
   /* Gantt timeline */
-  .gantt-container { overflow-x: auto; overflow-y: auto; max-height: calc(100vh - 220px); }
+  .gantt-container { overflow-x: auto; overflow-y: auto; max-height: calc(100vh - 260px); }
   .gantt { display: grid; min-width: 100%; position: relative; }
 
   .gantt-month-cell { background: #eee; text-align: center; font-size: 13px; font-weight: 600; padding: 6px 0; border-right: 1px solid #ddd; border-bottom: 1px solid #ccc; position: sticky; top: 0; z-index: 11; }
@@ -34,13 +41,13 @@
 
   .gantt-label { display: none; }
 
-  .gantt-cell { border-right: 1px solid #f0f0f0; border-bottom: 1px solid #eee; background: #fff; min-height: 34px; }
-  .gantt-cell.weekend { background: #faf8f5; }
+  .gantt-rows { position: relative; }
 
-  .gantt-bar { height: 26px; margin: 3px 0; border-radius: 3px; cursor: pointer; position: relative; opacity: 0.9; display: flex; align-items: center; padding: 0 6px; overflow: hidden; white-space: nowrap; }
+  .gantt-bar { height: 26px; border-radius: 3px; cursor: pointer; opacity: 0.9; display: flex; align-items: center; padding: 0 6px; overflow: hidden; white-space: nowrap; }
   .gantt-bar:hover { opacity: 1; box-shadow: 0 2px 8px rgba(0,0,0,0.25); z-index: 6; }
-  .bar-star { color: #ffd700; font-size: 14px; flex-shrink: 0; line-height: 1; pointer-events: none; text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
-  .bar-diamond { color: rgba(255,255,255,0.85); font-size: 10px; flex-shrink: 0; line-height: 1; pointer-events: none; }
+  .bar-rec-badge { font-size: 9px; padding: 1px 4px; border-radius: 3px; margin-right: 4px; flex-shrink: 0; pointer-events: none; font-weight: 600; }
+  .bar-rec-badge.must_see { background: #e74c3c; color: #fff; }
+  .bar-rec-badge.recommended { background: #f39c12; color: #fff; }
   .gantt-bar .bar-label { font-size: 11px; color: #fff; text-overflow: ellipsis; overflow: hidden; text-shadow: 0 1px 2px rgba(0,0,0,0.3); pointer-events: none; }
   .gantt-bar .bar-rec { font-size: 9px; background: rgba(0,0,0,0.25); color: #fff; padding: 1px 4px; border-radius: 3px; margin-right: 4px; flex-shrink: 0; pointer-events: none; }
 
@@ -58,35 +65,90 @@
   .tooltip .tt-info div { margin: 2px 0; }
   .tooltip .tt-summary { margin-top: 8px; color: #ddd; font-size: 12px; border-top: 1px solid #333; padding-top: 8px; }
 
+  /* Monthly view */
+  .monthly-container { padding: 24px 32px; overflow-y: auto; max-height: calc(100vh - 260px); }
+  .month-group { margin-bottom: 32px; }
+  .month-title { font-size: 16px; font-weight: 600; color: #1a1a1a; padding-bottom: 8px; border-bottom: 2px solid #1a1a1a; margin-bottom: 12px; }
+  .event-card { display: flex; gap: 14px; padding: 12px 14px; background: #fff; border-radius: 6px; margin-bottom: 8px; border-left: 4px solid #999; cursor: pointer; transition: box-shadow 0.15s; }
+  .event-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+  .event-card .card-date { flex-shrink: 0; width: 90px; font-size: 12px; color: #666; line-height: 1.8; }
+  .event-card .card-body { flex: 1; min-width: 0; }
+  .event-card .card-title { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+  .event-card .card-venue { font-size: 12px; color: #888; }
+  .event-card .card-summary { font-size: 12px; color: #666; margin-top: 4px; }
+  .event-card .card-meta { font-size: 11px; color: #999; margin-top: 4px; display: flex; gap: 12px; flex-wrap: wrap; }
+  .event-card .card-rec { font-size: 10px; padding: 1px 6px; border-radius: 4px; font-weight: 600; flex-shrink: 0; }
+  .card-rec.must_see { background: #e74c3c; color: #fff; }
+  .card-rec.recommended { background: #f39c12; color: #fff; }
+
+  .view-panel { display: none; }
+  .view-panel.active { display: block; }
+
   /* Mobile */
   @media (max-width: 768px) {
     .header { padding: 12px 16px; }
     .header h1 { font-size: 16px; }
+    .tabs { padding: 0 16px; }
+    .tab { padding: 8px 14px; font-size: 13px; }
     .controls { padding: 10px 16px; gap: 8px; }
     .controls label { display: none; }
     .controls select { font-size: 12px; padding: 5px 6px; }
     .legend { padding: 8px 16px; gap: 10px; font-size: 11px; }
     .legend-rec { margin-left: 8px; padding-left: 8px; }
-    .gantt-container { max-height: calc(100vh - 180px); -webkit-overflow-scrolling: touch; }
+    .gantt-container { max-height: calc(100vh - 280px); -webkit-overflow-scrolling: touch; }
     .gantt-month-cell { font-size: 11px; padding: 4px 0; }
     .gantt-day-cell { font-size: 9px; padding: 2px 0; }
     .gantt-bar { height: 22px; margin: 2px 0; }
     .gantt-bar .bar-label { font-size: 10px; }
     .gantt-bar .bar-rec { font-size: 8px; }
-    .gantt-cell { min-height: 28px; }
-    div[style*="padding: 24px 32px"] { padding: 12px 16px !important; }
     .tooltip { max-width: 280px; font-size: 12px; }
     .tooltip .tt-title { font-size: 14px; }
+    .monthly-container { padding: 16px; max-height: calc(100vh - 280px); }
+    .month-title { font-size: 15px; }
+    .event-card { flex-direction: column; gap: 4px; padding: 10px 12px; }
+    .event-card .card-date { width: auto; font-size: 11px; line-height: 1.4; }
+    .event-card .card-title { font-size: 13px; }
   }
+
+  /* Dark mode */
+  [data-theme="dark"] body { background: #1a1a1a; color: #e0e0e0; }
+  [data-theme="dark"] .header { background: #111; }
+  [data-theme="dark"] .tabs { background: #222; border-bottom-color: #333; }
+  [data-theme="dark"] .tab { color: #888; }
+  [data-theme="dark"] .tab.active { color: #fff; border-bottom-color: #fff; }
+  [data-theme="dark"] .controls { background: #222; border-bottom-color: #333; }
+  [data-theme="dark"] .controls select { background: #333; color: #e0e0e0; border-color: #555; }
+  [data-theme="dark"] .legend { background: #222; border-bottom-color: #333; color: #999; }
+  [data-theme="dark"] .legend-rec { border-left-color: #444; }
+
+  [data-theme="dark"] .gantt-month-cell { background: #2a2a2a; color: #ccc; border-right-color: #444; border-bottom-color: #444; }
+  [data-theme="dark"] .gantt-day-cell { background: #222; color: #999; border-right-color: #333; border-bottom-color: #444; }
+  [data-theme="dark"] .gantt-day-cell.weekend { background: #2a2520; color: #c0392b; }
+  [data-theme="dark"] .gantt-day-cell.today { background: #e74c3c; color: #fff; }
+
+  [data-theme="dark"] .month-title { color: #e0e0e0; border-bottom-color: #e0e0e0; }
+  [data-theme="dark"] .event-card { background: #252525; }
+  [data-theme="dark"] .event-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.4); }
+  [data-theme="dark"] .event-card .card-date { color: #aaa; }
+  [data-theme="dark"] .event-card .card-venue { color: #888; }
+  [data-theme="dark"] .event-card .card-summary { color: #999; }
+  [data-theme="dark"] .event-card .card-meta { color: #777; }
 </style>
 </head>
 <body>
 
 <div class="header">
-  <h1>Tokyo Art Beat</h1>
-  <div class="meta" id="meta">Loading...</div>
+  <div class="header-left">
+    <h1>Tokyo Art Calendar</h1>
+    <div class="meta" id="meta">Loading...</div>
+  </div>
+  <button class="theme-toggle" id="themeToggle">Dark</button>
 </div>
 
+<div class="tabs">
+  <div class="tab active" data-view="timeline">Timeline</div>
+  <div class="tab" data-view="monthly">Monthly</div>
+</div>
 
 <div class="controls">
   <label>Filter:</label>
@@ -98,7 +160,7 @@
   <select id="filterSource">
     <option value="all">All Sources</option>
   </select>
-  <label>Sort:</label>
+  <label id="sortLabel">Sort:</label>
   <select id="sortBy">
     <option value="date">By Date</option>
     <option value="source">By Source</option>
@@ -109,22 +171,46 @@
 
 <div class="legend" id="legend"></div>
 
-<div style="padding: 24px 32px;">
+<div class="view-panel active" id="timelinePanel" style="padding: 24px 32px;">
   <div class="gantt-container" id="ganttContainer"></div>
+</div>
+
+<div class="view-panel" id="monthlyPanel">
+  <div class="monthly-container" id="monthlyContainer"></div>
 </div>
 
 <div class="tooltip" id="tooltip"></div>
 
 <script>
+// Theme
+function getTheme() {
+  const saved = localStorage.getItem('theme');
+  if (saved) return saved;
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  document.getElementById('themeToggle').textContent = theme === 'dark' ? 'Light' : 'Dark';
+}
+applyTheme(getTheme());
+document.getElementById('themeToggle').addEventListener('click', () => {
+  const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  localStorage.setItem('theme', next);
+  applyTheme(next);
+  if (DATA && currentView === 'timeline') render(); // re-render gantt for bg colors
+});
+
 let DATA = null;
 let allEvents = [];
 let sourceColors = {};
+let currentView = 'timeline';
 
 // 14 distinct, accessible hues for sources
 const SOURCE_PALETTE = [
   '#4a90d9', '#d94452', '#27ae60', '#8e44ad', '#e67e22',
   '#16a085', '#c0392b', '#2980b9', '#d4ac0d', '#7f8c8d',
-  '#e84393', '#6c5ce7', '#00b894', '#fd79a8',
+  '#e84393', '#6c5ce7', '#00b894', '#2d3436', '#fd79a8',
+  '#0984e3', '#a29bfe',
 ];
 
 function assignSourceColors() {
@@ -151,6 +237,20 @@ fetch('./result.json').then(r => { if (r.ok) return r.json(); throw 'not found';
   .then(d => { DATA = d; init(); })
   .catch(() => { document.getElementById('meta').textContent = 'result.json not found'; });
 
+// Tabs
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    currentView = tab.dataset.view;
+    document.getElementById('timelinePanel').classList.toggle('active', currentView === 'timeline');
+    document.getElementById('monthlyPanel').classList.toggle('active', currentView === 'monthly');
+    document.getElementById('sortBy').style.display = currentView === 'monthly' ? 'none' : '';
+    document.getElementById('sortLabel').style.display = currentView === 'monthly' ? 'none' : '';
+    tooltip.style.display = 'none';
+    render();
+  });
+});
 
 function init() {
   allEvents = [];
@@ -190,7 +290,11 @@ function getFiltered() {
 function render() {
   const events = getFiltered();
   document.getElementById('count').textContent = `${events.length} events`;
-  renderGantt(events);
+  if (currentView === 'timeline') {
+    renderGantt(events);
+  } else {
+    renderMonthly(events);
+  }
 }
 
 // Tooltip
@@ -227,6 +331,101 @@ function positionTooltip(e) {
   tooltip.style.top = y + 'px';
 }
 document.addEventListener('mousemove', e => { if (tooltip.style.display === 'block') positionTooltip(e); });
+
+// ---- MONTHLY ----
+function renderEventCard(ev) {
+  const rec = ev.recommendation || 'normal';
+  const srcColor = sourceColors[ev._source] || '#999';
+  const recLabels = { must_see: 'Must See', recommended: 'Recommended' };
+  const recTag = recLabels[rec] ? `<span class="card-rec ${rec}">${recLabels[rec]}</span>` : '';
+
+  const sd = ev.start_date || '';
+  const ed = ev.end_date || '';
+  const dateStr = sd && ed ? `${sd.slice(5)} ~ ${ed.slice(5)}` : sd ? `${sd.slice(5)} ~` : '';
+
+  let html = `<div class="event-card" style="border-left-color:${srcColor}" data-url="${esc(ev.url || '')}">`;
+  html += `<div class="card-date">${dateStr}</div>`;
+  html += `<div class="card-body">`;
+  html += `<div class="card-title">${recTag} ${esc(ev.title)}</div>`;
+  html += `<div class="card-venue">${esc(ev.venue || '')} - ${esc(ev._source)}</div>`;
+  if (ev.summary) html += `<div class="card-summary">${esc(ev.summary)}</div>`;
+  const metaParts = [];
+  if (ev.start_time) metaParts.push(ev.start_time + (ev.end_time ? ' - ' + ev.end_time : ''));
+  if (ev.admission) metaParts.push(ev.admission);
+  if (ev.closed_days) metaParts.push('休館: ' + ev.closed_days);
+  if (ev.reservation_required) metaParts.push('要予約');
+  if (metaParts.length) html += `<div class="card-meta">${metaParts.map(m => `<span>${esc(m)}</span>`).join('')}</div>`;
+  html += `</div></div>`;
+  return html;
+}
+
+function renderMonthly(events) {
+  const container = document.getElementById('monthlyContainer');
+  if (!events.length) { container.innerHTML = '<p style="padding:60px;color:#999;text-align:center">No events</p>'; return; }
+
+  const today = new Date().toISOString().slice(0, 10);
+  const thisMonth = today.slice(0, 7);
+
+  const recOrder = { must_see: 0, recommended: 1, normal: 2 };
+
+  // Split: ongoing (started before today, end_date >= today) vs upcoming (start_date >= today)
+  const ongoing = [];
+  const upcoming = [];
+  events.forEach(ev => {
+    if (!ev.start_date) return;
+    if (ev.start_date <= today && ev.end_date && ev.end_date >= today) {
+      ongoing.push(ev);
+    } else if (ev.start_date > today) {
+      upcoming.push(ev);
+    }
+  });
+
+  // Sort ongoing by end_date (ending soon first), then by recommendation
+  ongoing.sort((a, b) => (a.end_date || '9999').localeCompare(b.end_date || '9999')
+    || (recOrder[a.recommendation] ?? 2) - (recOrder[b.recommendation] ?? 2));
+
+  // Sort upcoming by start_date
+  upcoming.sort((a, b) => (a.start_date || '9999').localeCompare(b.start_date || '9999')
+    || (recOrder[a.recommendation] ?? 2) - (recOrder[b.recommendation] ?? 2));
+
+  let html = '';
+
+  // Ongoing section
+  if (ongoing.length) {
+    html += `<div class="month-group">`;
+    html += `<div class="month-title">開催中 (${ongoing.length})</div>`;
+    ongoing.forEach(ev => { html += renderEventCard(ev); });
+    html += `</div>`;
+  }
+
+  // Upcoming grouped by month
+  const months = {};
+  upcoming.forEach(ev => {
+    const key = ev.start_date.slice(0, 7);
+    if (!months[key]) months[key] = [];
+    months[key].push(ev);
+  });
+
+  Object.keys(months).sort().forEach(key => {
+    const [yr, mo] = key.split('-');
+    html += `<div class="month-group">`;
+    html += `<div class="month-title">${yr}年${parseInt(mo)}月 (${months[key].length})</div>`;
+    months[key].forEach(ev => { html += renderEventCard(ev); });
+    html += `</div>`;
+  });
+
+  container.innerHTML = html;
+
+  container.scrollTop = 0;
+
+  // Click to open URL
+  container.querySelectorAll('.event-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const url = card.dataset.url;
+      if (url) window.open(url, '_blank');
+    });
+  });
+}
 
 // ---- GANTT ----
 function renderGantt(events) {
@@ -276,18 +475,41 @@ function renderGantt(events) {
       || (a.start_date || '').localeCompare(b.start_date || ''));
   }
 
-  let html = `<div class="gantt" style="grid-template-columns: repeat(${days.length}, minmax(16px, 1fr)); position: relative;">`;
+  const colW = 18; // px per day column
+  const rowH = 32; // px per event row
+  const headerH = 60; // month + day header height
+  const totalW = days.length * colW;
+  const totalH = headerH + events.length * rowH;
+
+  // Build weekend column background as CSS gradient stops
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const weekdayBg = isDark ? '#1e1e1e' : '#fff';
+  const weekendBg = isDark ? '#232018' : '#faf8f5';
+  const stops = [];
+  days.forEach((day, idx) => {
+    const dt = new Date(day);
+    const isWeekend = dt.getDay() === 0 || dt.getDay() === 6;
+    const color = isWeekend ? weekendBg : weekdayBg;
+    const x0 = ((idx / days.length) * 100).toFixed(4);
+    const x1 = (((idx + 1) / days.length) * 100).toFixed(4);
+    stops.push(`${color} ${x0}%, ${color} ${x1}%`);
+  });
+  const colBg = `linear-gradient(to right, ${stops.join(', ')})`;
+
+  let html = `<div class="gantt" style="width:${totalW}px; position:relative;">`;
+
+  // Header row (month + day) using grid
+  html += `<div style="display:grid; grid-template-columns:repeat(${days.length}, ${colW}px); position:sticky; top:0; z-index:11;">`;
 
   // Month header
-  let col = 1, i = 0;
+  let i = 0;
   while (i < days.length) {
     const month = days[i].slice(0, 7);
     let span = 0;
     while (i + span < days.length && days[i + span].slice(0, 7) === month) span++;
     const mNum = parseInt(month.slice(5));
     const yr = month.slice(0, 4);
-    html += `<div class="gantt-month-cell" style="grid-column: ${col} / span ${span};">${yr}/${mNum}月</div>`;
-    col += span;
+    html += `<div class="gantt-month-cell" style="grid-column: ${i + 1} / span ${span};">${yr}/${mNum}月</div>`;
     i += span;
   }
 
@@ -300,32 +522,29 @@ function renderGantt(events) {
     const cls = [isWeekend ? 'weekend' : '', isToday ? 'today' : ''].filter(Boolean).join(' ');
     html += `<div class="gantt-day-cell ${cls}" style="grid-column: ${idx + 1};">${dt.getDate()}</div>`;
   });
+  html += `</div>`;
 
-  // Event rows
+  // Rows area with column stripe background
+  html += `<div class="gantt-rows" style="background:${colBg}; min-height:${events.length * rowH}px;">`;
+
+  // Event bars
   events.forEach((ev, evIdx) => {
     const rec = ev.recommendation || 'normal';
     const srcColor = sourceColors[ev._source] || '#999';
-    const row = evIdx + 3;
 
-    // Background cells
-    days.forEach((day, idx) => {
-      const dt = new Date(day);
-      const isWeekend = dt.getDay() === 0 || dt.getDay() === 6;
-      html += `<div class="gantt-cell${isWeekend ? ' weekend' : ''}" style="grid-row: ${row}; grid-column: ${idx + 1};"></div>`;
-    });
-
-    // Bar with inline label
     if (ev.start_date && ev.end_date) {
       let startIdx = days.indexOf(ev.start_date);
       let endIdx = days.indexOf(ev.end_date);
       if (startIdx < 0 && ev.start_date < days[0]) startIdx = 0;
       if (endIdx < 0 && ev.end_date > days[days.length - 1]) endIdx = days.length - 1;
       if (startIdx >= 0 && endIdx >= 0 && endIdx >= startIdx) {
-        const colStart = startIdx + 1;
-        const colSpan = endIdx - startIdx + 1;
-        const recIcon = rec === 'must_see' ? '<span class="bar-star">★</span>' : rec === 'recommended' ? '<span class="bar-diamond">◆</span>' : '';
+        const left = startIdx * colW;
+        const width = (endIdx - startIdx + 1) * colW;
+        const top = evIdx * rowH + 3;
+        const recLabels = { must_see: 'Must See', recommended: 'Recommended' };
+        const recIcon = recLabels[rec] ? `<span class="bar-rec-badge ${rec}">${recLabels[rec]}</span>` : '';
         const srcTag = `<span class="bar-rec">${esc(ev._source)}</span>`;
-        html += `<div class="gantt-bar ${rec}" data-idx="${evIdx}" style="grid-row: ${row}; grid-column: ${colStart} / span ${colSpan}; background: ${srcColor};">${recIcon}${srcTag}<span class="bar-label">${esc(ev.title)}</span></div>`;
+        html += `<div class="gantt-bar ${rec}" data-idx="${evIdx}" style="position:absolute; left:${left}px; top:${top}px; width:${width}px; background:${srcColor};">${recIcon}${srcTag}<span class="bar-label">${esc(ev.title)}</span></div>`;
       }
     }
   });
@@ -333,17 +552,16 @@ function renderGantt(events) {
   // Today line
   const todayIdx = days.indexOf(today);
   if (todayIdx >= 0) {
-    const totalRows = events.length + 2;
-    html += `<div class="gantt-today-line" style="grid-column: ${todayIdx + 1}; grid-row: 1 / span ${totalRows};"></div>`;
+    const left = todayIdx * colW + Math.floor(colW / 2);
+    html += `<div class="gantt-today-line" style="left:${left}px; top:0; height:100%;"></div>`;
   }
 
-  html += `</div>`;
+  html += `</div></div>`;
   container.innerHTML = html;
 
-  // Scroll to today line
-  const todayLine = container.querySelector('.gantt-today-line');
-  if (todayLine) {
-    container.scrollLeft = Math.max(0, todayLine.offsetLeft - container.clientWidth / 3);
+  // Scroll to today
+  if (todayIdx >= 0) {
+    container.scrollLeft = Math.max(0, todayIdx * colW - container.clientWidth / 3);
   }
 
   // Events — desktop: hover tooltip + click opens URL; mobile: tap shows tooltip, second tap opens URL

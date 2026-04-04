@@ -36,6 +36,9 @@ SOURCES = [
     {"name": "東京国立近代美術館", "url": "https://www.momat.go.jp/exhibitions"},
     {"name": "寺田倉庫", "url": "https://warehouseofart.org/"},
     {"name": "横浜美術館", "url": "https://yokohama.art.museum/exhibition/"},
+    {"name": "エスパス ルイ・ヴィトン東京", "url": "https://www.espacelouisvuittontokyo.com/ja/detail"},
+    {"name": "東京オペラシティアートギャラリー", "url": "https://www.operacity.jp/contents/exhibition/upcoming?lang=ja&ag_home=0"},
+    {"name": "SOMPO美術館", "url": "https://www.sompo-museum.org/exhibitions/#now"},
     {
         "name": "TOKYO NODE",
         "url": "https://www.tokyonode.jp/events/index.html",
