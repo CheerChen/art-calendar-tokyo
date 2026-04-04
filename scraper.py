@@ -647,7 +647,7 @@ def main():
     save_file(run_dir / "result.json", json_str)
     save_file(Path("result.json"), json_str)
 
-    print("\n" + json_str)
+    print(f"\nDone: {len(result['sources'])} sources, {sum(len(s['events']) for s in result['sources'])} events")
 
 
 if __name__ == "__main__":
