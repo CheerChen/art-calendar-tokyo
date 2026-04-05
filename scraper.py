@@ -11,8 +11,14 @@ import trafilatura
 from bs4 import BeautifulSoup
 
 SOURCES = [
-    {"name": "武蔵野美術大学", "url": "https://oc.musabi.ac.jp/"},
-    {"name": "多摩美術大学", "url": "https://www.tamabi.ac.jp/open-campus/"},
+    {
+        "name": "武蔵野美術大学",
+        "url": "https://oc.musabi.ac.jp/",
+    },
+    {
+        "name": "多摩美術大学",
+        "url": "https://www.tamabi.ac.jp/open-campus/",
+    },
     {
         "name": "東京都現代美術館",
         "url": "https://www.mot-art-museum.jp/exhibitions/",
@@ -27,17 +33,63 @@ SOURCES = [
         "parser": "nact",
         "detail_selector": ".acc_list",
     },
-    {"name": "国立西洋美術館", "url": "https://www.nmwa.go.jp/jp/exhibitions/current.html"},
-    {"name": "上野の森美術館", "url": "https://www.ueno-mori.org/exhibitions/"},
-    {"name": "東京都美術館", "url": "https://www.tobikan.jp/exhibition/index.html", "list_selector": "section.container.mt30.s-mt15 a.exhibition-item"},
-    {"name": "アーティゾン美術館", "url": "https://www.artizon.museum/exhibition/", "list_selector": "div.case", "link_selector": "a[href*='/exhibition/detail/']"},
-    {"name": "森美術館", "url": "https://www.mori.art.museum/jp/exhibitions/index.html"},
-    {"name": "21_21 DESIGN SIGHT", "url": "https://www.2121designsight.jp/"},
-    {"name": "東京国立近代美術館", "url": "https://www.momat.go.jp/exhibitions"},
-    {"name": "寺田倉庫", "url": "https://warehouseofart.org/", "list_selector": "li.frontEventItem"},
-    {"name": "横浜美術館", "url": "https://yokohama.art.museum/exhibition/"},
-{"name": "東京オペラシティアートギャラリー", "url": "https://www.operacity.jp/contents/exhibition/upcoming?lang=ja&ag_home=0"},
-    {"name": "SOMPO美術館", "url": "https://www.sompo-museum.org/exhibitions/#now"},
+    {
+        "name": "国立西洋美術館",
+        "url": "https://www.nmwa.go.jp/jp/exhibitions/current.html",
+        "list_selector": "main#main.exb_index > section",
+        "link_selector": "p.lnk1 a",
+    },
+    {
+        "name": "上野の森美術館",
+        "url": "https://www.ueno-mori.org/exhibitions/",
+        "list_selector": "ul#ScheduleList > li",
+        "link_selector": "a",
+    },
+    {
+        "name": "東京都美術館",
+        "url": "https://www.tobikan.jp/exhibition/index.html",
+        "list_selector": "section.container.mt30.s-mt15 a.exhibition-item",
+        "link_selector": "self",
+    },
+    {
+        "name": "アーティゾン美術館",
+        "url": "https://www.artizon.museum/exhibition/",
+        "list_selector": "div.case",
+        "link_selector": "a",
+    },
+    {
+        "name": "森美術館",
+        "url": "https://www.mori.art.museum/jp/exhibitions/index.html",
+        "list_selector": "div[class*='category-']",
+        "link_selector": "a",
+    },
+    {
+        "name": "21_21 DESIGN SIGHT",
+        "url": "https://www.2121designsight.jp/",
+    },
+    {
+        "name": "東京国立近代美術館",
+        "url": "https://www.momat.go.jp/exhibitions",
+        "list_selector": "div.box-page-wrapper section.item",
+        "link_selector": "a",
+    },
+    {
+        "name": "寺田倉庫",
+        "url": "https://warehouseofart.org/",
+        "list_selector": "li.frontEventItem",
+    },
+    {
+        "name": "横浜美術館",
+        "url": "https://yokohama.art.museum/exhibition/",
+    },
+    {
+        "name": "東京オペラシティアートギャラリー",
+        "url": "https://www.operacity.jp/contents/exhibition/upcoming?lang=ja&ag_home=0",
+    },
+    {
+        "name": "SOMPO美術館",
+        "url": "https://www.sompo-museum.org/exhibitions/#now",
+    },
     {
         "name": "TOKYO NODE",
         "url": "https://www.tokyonode.jp/events/index.html",
@@ -518,12 +570,9 @@ def main():
 
         try:
             if "api" in src:
-                raw = fetch_page(src["api"])
-                save_file(run_dir / f"{slug}.json", raw)
-                text = raw
+                text = fetch_page(src["api"])
             else:
                 raw_html = fetch_page(src["url"])
-                save_file(run_dir / f"{slug}.html", raw_html)
                 list_sel = src.get("list_selector")
                 if list_sel:
                     soup = BeautifulSoup(raw_html, "html.parser")
@@ -533,12 +582,15 @@ def main():
                     parts = []
                     for el in items:
                         el_text = re.sub(r"\n{3,}", "\n\n", el.get_text(separator="\n").strip())
-                        a = None
-                        if link_sel:
-                            a = el.select_one(link_sel)
-                        elif el.name == "a" and el.get("href"):
-                            a = el
-                        if a and a.get("href"):
+                        links = []
+                        if link_sel == "self":
+                            if el.name == "a" and el.get("href"):
+                                links = [el]
+                        elif link_sel:
+                            links = el.select(link_sel)
+                        for a in links:
+                            if not a.get("href"):
+                                continue
                             href = a["href"]
                             if href.startswith("/"):
                                 href = base_url + href
@@ -550,8 +602,6 @@ def main():
                     text = "\n\n".join(parts) if parts else None
                 else:
                     text = clean_html(raw_html)
-                if text:
-                    save_file(run_dir / f"{slug}.txt", text)
         except Exception as e:
             print(f"FETCH ERROR: {e}", end="")
             cached = cache.get(src["name"])
@@ -571,6 +621,7 @@ def main():
             print("no content extracted, skipping")
             continue
 
+        save_file(run_dir / f"{slug}.txt", text)
         print(f"  {len(text)} chars")
 
         # Check cache
