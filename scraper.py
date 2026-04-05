@@ -725,6 +725,57 @@ def main():
     save_file(run_dir / "result.json", json_str)
     save_file(Path("result.json"), json_str)
 
+    # Generate ICS calendar
+    ics_lines = [
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        "PRODID:-//Tokyo Art Calendar//EN",
+        "CALSCALE:GREGORIAN",
+        "X-WR-CALNAME:Tokyo Art Calendar",
+        "X-WR-TIMEZONE:Asia/Tokyo",
+    ]
+    for src in result["sources"]:
+        for ev in src["events"]:
+            if not ev.get("start_date"):
+                continue
+            sd = ev["start_date"].replace("-", "")
+            ed = ev.get("end_date", "")
+            if ed:
+                # VALUE=DATE end is exclusive, add one day
+                from datetime import timedelta
+                end_dt = datetime.strptime(ed, "%Y-%m-%d") + timedelta(days=1)
+                ed = end_dt.strftime("%Y%m%d")
+            else:
+                ed = sd
+            uid = hashlib.md5(f"{ev.get('title','')}{sd}{src['name']}".encode()).hexdigest()
+            summary = (ev.get("title") or "").replace(",", "\\,").replace("\n", " ")
+            venue = (ev.get("venue") or "").replace(",", "\\,").replace("\n", " ")
+            desc_parts = []
+            if ev.get("summary"):
+                desc_parts.append(ev["summary"])
+            if ev.get("admission"):
+                desc_parts.append(ev["admission"])
+            if ev.get("closed_days"):
+                desc_parts.append(f"休館: {ev['closed_days']}")
+            if ev.get("reservation_required"):
+                desc_parts.append("要予約")
+            desc = "\\n".join(desc_parts).replace(",", "\\,")
+            url = ev.get("url") or ""
+            ics_lines.append("BEGIN:VEVENT")
+            ics_lines.append(f"UID:{uid}@art-calendar-tokyo")
+            ics_lines.append(f"DTSTART;VALUE=DATE:{sd}")
+            ics_lines.append(f"DTEND;VALUE=DATE:{ed}")
+            ics_lines.append(f"SUMMARY:{summary}")
+            if venue:
+                ics_lines.append(f"LOCATION:{venue}")
+            if desc:
+                ics_lines.append(f"DESCRIPTION:{desc}")
+            if url:
+                ics_lines.append(f"URL:{url}")
+            ics_lines.append("END:VEVENT")
+    ics_lines.append("END:VCALENDAR")
+    save_file(Path("calendar.ics"), "\r\n".join(ics_lines))
+
     print(f"\nDone: {len(result['sources'])} sources, {sum(len(s['events']) for s in result['sources'])} events")
 
 

@@ -154,8 +154,8 @@
 </div>
 
 <div class="tabs">
-  <div class="tab active" data-view="timeline">Timeline</div>
-  <div class="tab" data-view="monthly">Monthly</div>
+  <div class="tab active" data-view="recently">Recently</div>
+  <div class="tab" data-view="timeline">Timeline</div>
 </div>
 
 <div class="controls">
@@ -179,12 +179,12 @@
 
 <div class="legend" id="legend"></div>
 
-<div class="view-panel active" id="timelinePanel" style="padding: 24px 32px;">
+<div class="view-panel" id="timelinePanel" style="padding: 24px 32px;">
   <div class="gantt-container" id="ganttContainer"></div>
 </div>
 
-<div class="view-panel" id="monthlyPanel">
-  <div class="monthly-container" id="monthlyContainer"></div>
+<div class="view-panel active" id="recentlyPanel">
+  <div class="monthly-container" id="recentlyContainer"></div>
 </div>
 
 <div class="tooltip" id="tooltip"></div>
@@ -204,13 +204,13 @@ document.getElementById('themeToggle').addEventListener('click', () => {
   const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
   localStorage.setItem('theme', next);
   applyTheme(next);
-  if (DATA && currentView === 'timeline') render(); // re-render gantt for bg colors
+  if (DATA) render(); // re-render for bg colors
 });
 
 let DATA = null;
 let allEvents = [];
 let sourceColors = {};
-let currentView = 'timeline';
+let currentView = 'recently';
 
 // 14 distinct, accessible hues for sources
 const SOURCE_PALETTE = [
@@ -254,9 +254,9 @@ document.querySelectorAll('.tab').forEach(tab => {
     tab.classList.add('active');
     currentView = tab.dataset.view;
     document.getElementById('timelinePanel').classList.toggle('active', currentView === 'timeline');
-    document.getElementById('monthlyPanel').classList.toggle('active', currentView === 'monthly');
-    document.getElementById('sortBy').style.display = currentView === 'monthly' ? 'none' : '';
-    document.getElementById('sortLabel').style.display = currentView === 'monthly' ? 'none' : '';
+    document.getElementById('recentlyPanel').classList.toggle('active', currentView === 'recently');
+    document.getElementById('sortBy').style.display = currentView === 'recently' ? 'none' : '';
+    document.getElementById('sortLabel').style.display = currentView === 'recently' ? 'none' : '';
     tooltip.style.display = 'none';
     render();
   });
@@ -303,7 +303,7 @@ function render() {
   if (currentView === 'timeline') {
     renderGantt(events);
   } else {
-    renderMonthly(events);
+    renderRecently(events);
   }
 }
 
@@ -369,8 +369,8 @@ function renderEventCard(ev) {
   return html;
 }
 
-function renderMonthly(events) {
-  const container = document.getElementById('monthlyContainer');
+function renderRecently(events) {
+  const container = document.getElementById('recentlyContainer');
   if (!events.length) { container.innerHTML = '<p style="padding:60px;color:#999;text-align:center">No events</p>'; return; }
 
   const today = new Date().toISOString().slice(0, 10);
