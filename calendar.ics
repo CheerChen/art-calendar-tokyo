@@ -10,7 +10,7 @@ DTSTART;VALUE=DATE:20260718
 DTEND;VALUE=DATE:20260720
 SUMMARY:夏のオープンキャンパス
 LOCATION:多摩美術大学八王子キャンパス
-DESCRIPTION:高校生・受験生や保護者の方対象の八王子キャンパスでのオープンキャンパス。学科別進学相談会、入試制度説明会、キャンパス見学、学科別作品展示、公開授業など多角的なプログラムで構成される。\n要予約
+DESCRIPTION:高校生・受験生や保護者の方を対象に、学科別進学相談会、入試制度説明会、キャンパス見学、学科別作品展示、公開授業など 다양한 프로그램을実施する対面型のオープンキャンパス。\n要予約
 URL:https://www.tamabi.ac.jp/open-campus/
 END:VEVENT
 BEGIN:VEVENT
@@ -19,7 +19,7 @@ DTSTART;VALUE=DATE:20260927
 DTEND;VALUE=DATE:20260928
 SUMMARY:秋の進学相談会
 LOCATION:多摩美術大学八王子キャンパス
-DESCRIPTION:受験を考える本人対象に、本学の教員から直接作品指導を受けることができる進学相談会。教員・職員による学科別相談やキャンパスツアー、大学説明会を実施する。\n要予約
+DESCRIPTION:受験を考える本人や高校・予備校教員、保護者を対象に、学科別進学相談会や大学説明会、キャンパスツアーを同日実施する進学相談会。\n要予約
 URL:https://www.tamabi.ac.jp/open-campus/
 END:VEVENT
 BEGIN:VEVENT
@@ -28,7 +28,7 @@ DTSTART;VALUE=DATE:20261101
 DTEND;VALUE=DATE:20261104
 SUMMARY:進学相談会 in 芸術祭
 LOCATION:多摩美術大学八王子キャンパス 本部棟3階大会議室
-DESCRIPTION:多摩美術大学芸術祭期間中に開催する進学相談会。合格者の入試参考作品展示や大学・学科紹介，大学職員による大学説明会を行う。参考作品展示はどなたても自由に見学可能。
+DESCRIPTION:多摩美術大学の学園祭「芸術祭」期間中に開催され、入試参考作品展示や大学・学科紹介、大学職員による説明会を行う対面型のイベント。
 URL:https://www.tamabi.ac.jp/open-campus/
 END:VEVENT
 BEGIN:VEVENT
@@ -243,8 +243,8 @@ UID:32883cab92c328bd9431f39aaaa42289@art-calendar-tokyo
 DTSTART;VALUE=DATE:20260401
 DTEND;VALUE=DATE:20260408
 SUMMARY:第54回 写実画壇展
-LOCATION:上野の森美術館 本館1F・本館2F・ギャラリー
-DESCRIPTION:写実画壇の作家たちが своих作品を出品する公募展。具象絵画の現状と成果を発表する展覧会で、多摩美術大学や女子美術大学関係者を中心とした作品が展示される。
+LOCATION:上野の森美術館 本館1F\, 本館2F\, ギャラリー
+DESCRIPTION:第54回写実画壇展は会員と招待作家による洋画約90点とギャラリーでの小品約85点を展示する写実表現に特化した公募展。4月1日から7일까지上野の森美術館で開催。\n一般800円　大学・高校生500円　中学生以下無料
 URL:https://www.ueno-mori.org/exhibitions/article.cgi?id=12646731
 END:VEVENT
 BEGIN:VEVENT
@@ -253,7 +253,7 @@ DTSTART;VALUE=DATE:20260408
 DTEND;VALUE=DATE:20260414
 SUMMARY:国際芸術大賞東京TOKYO展
 LOCATION:上野の森美術館 本館1F
-DESCRIPTION:絵画と水墨画を対象とした国際芸術大賞の出品作品展。Tokyo展として世界各国からの出品作品が一堂に会する。
+DESCRIPTION:水性画材を用いた公募作品150～200点を展示する公募展。水墨画、工筆、透明水彩、岩彩など多様な技法が一堂に会し、4月8日から13日まで開催。
 URL:https://www.ueno-mori.org/exhibitions/article.cgi?id=12737797
 END:VEVENT
 BEGIN:VEVENT
@@ -262,7 +262,7 @@ DTSTART;VALUE=DATE:20260409
 DTEND;VALUE=DATE:20260414
 SUMMARY:第五回 日本木彫刻展
 LOCATION:上野の森美術館 ギャラリー
-DESCRIPTION:日本木彫刻会の会員による木彫作品展。木の素材感と彫刻家の技術が一堂に堪能できる。
+DESCRIPTION:日本木彫刻協会主办の木彫刻作品と絵画作品を展示する第五回展。無料入場が可能で、4月9日から13日まで上野の森美術館ギャラリーで開催。\n無料
 URL:https://www.ueno-mori.org/exhibitions/article.cgi?id=12647008
 END:VEVENT
 BEGIN:VEVENT
@@ -270,8 +270,8 @@ UID:5c4d4546f266938d11914312779db083@art-calendar-tokyo
 DTSTART;VALUE=DATE:20260415
 DTEND;VALUE=DATE:20260422
 SUMMARY:第40回 ハクビ和紙ちぎり絵創作展
-LOCATION:上野の森美術館 本館1F・本館2F
-DESCRIPTION:白眉和紙ちぎり絵スクールの学员たちによる和紙ちぎり絵作品展。障紙特有の温かみと精密な技法が光る。
+LOCATION:上野の森美術館 本館1F\, 本館2F
+DESCRIPTION:ハクビ和紙ちぎり絵学院の講師と生徒による和紙ちぎり絵創作作品約500点を展示する第40回展。入場料300円で4月15日から21일까지開催。\n300円（未就学児無料）
 URL:https://www.ueno-mori.org/exhibitions/article.cgi?id=12647007
 END:VEVENT
 BEGIN:VEVENT
@@ -280,7 +280,7 @@ DTSTART;VALUE=DATE:20260415
 DTEND;VALUE=DATE:20260420
 SUMMARY:國井誠海一門創立80周年 2026年 誠心社現代書小作品展
 LOCATION:上野の森美術館 ギャラリー
-DESCRIPTION:國井誠海一門の創立80周年を迎え、誠心社の現代書作品を一堂に展示。掛け軸や額装の書の小品ぞろい。
+DESCRIPTION:1946年に國井誠海が設立した誠心社の創立80周年記念展。海外や国内在住外国人の出品もあり、約80点の書作品を展示。4月15日から19日まで無料入場。\n無料
 URL:https://www.ueno-mori.org/exhibitions/article.cgi?id=12647023
 END:VEVENT
 BEGIN:VEVENT
@@ -289,7 +289,7 @@ DTSTART;VALUE=DATE:20260421
 DTEND;VALUE=DATE:20260426
 SUMMARY:昭和100年 そして100年後の未来へ展
 LOCATION:上野の森美術館 ギャラリー
-DESCRIPTION:昭和100年を迎え、過去を振り返りつつ未来を描く絵画・芸術作品展。100年という時間の重みと次の100年への展望を表現する。
+DESCRIPTION:昭和100年を祝う日本画、洋画、書、工芸、文芸の小品約70点を展示する合同展。無料入場条件で4月21日から25일까지上野の森美術館ギャラリーで開催。\n無料
 URL:https://www.ueno-mori.org/exhibitions/article.cgi?id=12647027
 END:VEVENT
 BEGIN:VEVENT
@@ -298,7 +298,7 @@ DTSTART;VALUE=DATE:20260422
 DTEND;VALUE=DATE:20260427
 SUMMARY:第46回 高友社書展
 LOCATION:上野の森美術館 本館1F
-DESCRIPTION:高友社の書道愛好家による書展。公募出品作品を中心に、書の多様性と伝統の継承が伝わる展示。
+DESCRIPTION:漢字・調和体・かな等の書作品約90点と学生展約110点を展示する第46回高友社書展。無料入場可能で4月22日から26日まで上野の森美術館本館1Fで開催。\n無料
 URL:https://www.ueno-mori.org/exhibitions/article.cgi?id=12647029
 END:VEVENT
 BEGIN:VEVENT
@@ -307,7 +307,7 @@ DTSTART;VALUE=DATE:20260422
 DTEND;VALUE=DATE:20260427
 SUMMARY:第61回 日本書研展
 LOCATION:上野の森美術館 本館2F
-DESCRIPTION:日本書道研究会（書研）の公募展。書の技量と表現の深化を目指す作家たちの作品が一堂に会する。
+DESCRIPTION:日本書道研究会主办の書作品約130点を展示する第61回日本書研展。無料入場可能で4月22日から26日まで上野の森美術館本館2Fで開催。\n無料
 URL:https://www.ueno-mori.org/exhibitions/article.cgi?id=12647031
 END:VEVENT
 BEGIN:VEVENT
@@ -315,72 +315,18 @@ UID:4ceb4cf846e0ca6f20e52c6cd8a230d7@art-calendar-tokyo
 DTSTART;VALUE=DATE:20260429
 DTEND;VALUE=DATE:20260511
 SUMMARY:明日をひらく絵画 第44回 上野の森美術館大賞展
-LOCATION:上野の森美術館 本館1F・本館2F
-DESCRIPTION:上野の森美術館が主催する絵画の公募展。大賞を決定する本選展で、新進気鋭の画家たちの作品が競う。第44回を迎える歴史ある展覧会で、中間審査通过的作家たちが參出品を出品する。
+LOCATION:上野の森美術館 本館1F\, 本館2F
+DESCRIPTION:上野の森美術館主办の公募展絵画展「明日をひらく絵画」第44回大賞展。ぐるっとパス利用可で、4月29日から5月10日まで本館1F・2Fで開催。\n一般800円、大学生400円、高校生以下無料（障害者手帳提示者と付添者1名無料）
 URL:https://www.ueno-mori.org/exhibitions/article.cgi?id=12647054
 END:VEVENT
 BEGIN:VEVENT
-UID:20194c95a5f6b52a30dc577c6d6e3a91@art-calendar-tokyo
+UID:56ec55cdb64404e5c489b5ededab8715@art-calendar-tokyo
 DTSTART;VALUE=DATE:20260429
 DTEND;VALUE=DATE:20260511
-SUMMARY:第43回 上野の森美術館大賞展 入賞者展
+SUMMARY:第43回上野の森美術館大賞展 入賞者展
 LOCATION:上野の森美術館 ギャラリー
-DESCRIPTION:第43回上野の森美術館大賞展の受賞作家による入賞者展。大賞・入選作品を中心に受賞者の個展を展開する。
+DESCRIPTION:第43回上野の森美術館大賞展入賞作家5名（堀花圭、久保田敬一、橋本唯瑶、水橋日和、森花）による新作展。無料入場でき、同時開催の大賞展とは別途チケットが必要。\n無料
 URL:https://www.ueno-mori.org/exhibitions/article.cgi?id=12647056
-END:VEVENT
-BEGIN:VEVENT
-UID:c8eb06edc4868c4c7c93f76b9ae63452@art-calendar-tokyo
-DTSTART;VALUE=DATE:20260127
-DTEND;VALUE=DATE:20260413
-SUMMARY:スウェーデン絵画　北欧の光、日常のかがやき
-LOCATION:東京都美術館
-DESCRIPTION:東京都美術館開館100周年を迎える特別展。北欧スウェーデンの画家たちが捉えた光の表現と、日常生活の中の之美しさを紹介する絵画展。
-URL:https://www.tobikan.jp/exhibition/2025_sweden.html
-END:VEVENT
-BEGIN:VEVENT
-UID:9d70936ec2c5c02ca47244ee08137930@art-calendar-tokyo
-DTSTART;VALUE=DATE:20260428
-DTEND;VALUE=DATE:20260706
-SUMMARY:安德魯·懷斯展
-LOCATION:東京都美術館
-DESCRIPTION:東京都美術館開館100周年特別展。アメリカを代表する画家アンドリュー・ワイエスの回顧展。水彩画や Tempera 画に始まった独特な表現技法と、ペンシルバニア州の風景や人々を描いた作品を通じて、その芸術的世界を紹介する。
-URL:https://www.tobikan.jp/exhibition/2026_wyeth.html
-END:VEVENT
-BEGIN:VEVENT
-UID:079298e8de4b8b18a8c1dc4cd685e92c@art-calendar-tokyo
-DTSTART;VALUE=DATE:20260725
-DTEND;VALUE=DATE:20261019
-SUMMARY:大英博物館日本美術コレクション　百花繚乱～海を越えた江戸絵画
-LOCATION:東京都美術館
-DESCRIPTION:東京都美術館開館100周年特別展。世界的に有名な大英博物館が所蔵する日本美術的名品の中から、江戸絵画を中心に海を越えて传来的美術品を紹介する展覽会。
-URL:https://www.tobikan.jp/exhibition/2026_britishmuseum.html
-END:VEVENT
-BEGIN:VEVENT
-UID:646ea132873a7847af40e14dabd9bbd1@art-calendar-tokyo
-DTSTART;VALUE=DATE:20260723
-DTEND;VALUE=DATE:20261008
-SUMMARY:この場所の風景―上野・大牟田・ブエノスアイレス
-LOCATION:東京都美術館
-DESCRIPTION:東京都美術館開館100周年企画展。上野・大牟田・ブエノスアイレスという3つの異なる土地の風景を通じて、場所と記憶・アイデンティティの関係を探る現代美術の展示。
-URL:https://www.tobikan.jp/exhibition/2026_viewsofthisplace.html
-END:VEVENT
-BEGIN:VEVENT
-UID:a0b3a4c2ae5b7ef326066e5b2a0718d1@art-calendar-tokyo
-DTSTART;VALUE=DATE:20260610
-DTEND;VALUE=DATE:20260702
-SUMMARY:都美セレクション グループ展 2026
-LOCATION:東京都美術館
-DESCRIPTION:東京都美術館開館100周年を迎えるグループ展。同美術館がセレクションした作家たちによる新作を発表する展示会上。
-URL:https://www.tobikan.jp/exhibition/2026_groupshow.html
-END:VEVENT
-BEGIN:VEVENT
-UID:162e20bbd13c5c7846d6c5786204c80a@art-calendar-tokyo
-DTSTART;VALUE=DATE:20261114
-DTEND;VALUE=DATE:20270329
-SUMMARY:オルセー美術館所蔵　いまを生きる歓び
-LOCATION:東京都美術館
-DESCRIPTION:東京都美術館開館100周年特別展。世界的に著名なパリ・オルセー美術館の所蔵作品を紹介する展覧会で、近代フランス美術の名品を通じて「いまを生きる歓び」を主题に揭げる。
-URL:https://www.tobikan.jp/exhibition/2026_orsay.html
 END:VEVENT
 BEGIN:VEVENT
 UID:15fac98adad92ed5c31c492f9f280f0e@art-calendar-tokyo
@@ -567,32 +513,36 @@ UID:05b68f4e7c653b08f8e7d5bc058a0602@art-calendar-tokyo
 DTSTART;VALUE=DATE:20260411
 DTEND;VALUE=DATE:20260419
 SUMMARY:SWEET HOME C
-LOCATION:ANOMALY TERRADA ART COMPLEX I/4F
-DESCRIPTION:TERRADA ART COMPLEXにおける груп展。アートコンプレックス内の gallery ANOMALY が送る UPCOMING 展。
+LOCATION:TERRADA ART COMPLEX I 4F
+DESCRIPTION:TERRADA ART COMPLEX Iにて開催中の現代アートグループ展。複数アーティストによる展示物が紹介されている。4月11日から18日の短期間での開催となる注目すべき展示イベント。
+URL:https://warehouseofart.org/
 END:VEVENT
 BEGIN:VEVENT
 UID:043f12aeba3417d1451a0cac8c345fee@art-calendar-tokyo
 DTSTART;VALUE=DATE:20260307
 DTEND;VALUE=DATE:20260419
 SUMMARY:Shifting Existence
-LOCATION:MAKI Gallery TERRADA ART COMPLEX I/1F
-DESCRIPTION:MAKI Gallery による展示。TERRADA ART COMPLEX I 1F で開催。
+LOCATION:MAKI Gallery TERRADA ART COMPLEX I 1F
+DESCRIPTION:MAKI Galleryによる現代アートの展示。TERRADA ART COMPLEX Iの1階 Galleriesセクションで開催中。「存在の変容」をテーマにした作品を展開。3月7日から4月18日までの会期で举办。
+URL:https://warehouseofart.org/
 END:VEVENT
 BEGIN:VEVENT
 UID:17dbf3ec4db6b7d0093e979f61ad21e1@art-calendar-tokyo
 DTSTART;VALUE=DATE:20260410
 DTEND;VALUE=DATE:20260516
 SUMMARY:Waiting. Still.
-LOCATION:YUKIKOMIZUTANI TERRADA ART COMPLEXⅡ/1F
-DESCRIPTION:TERRADA ART COMPLEXⅡ 1F の YUKIKOMIZUTANI による UPCOMING 展示。
+LOCATION:YUKIKOMIZUTANI TERRADA ART COMPLEXⅡ 1F
+DESCRIPTION:水住友津による展示。TERRADA ART COMPLEXⅡ1階 Galleriesセクションで4月10日から5月15日まで開催。「待つこと」「静止」をテーマにした作品を展示。
+URL:https://warehouseofart.org/
 END:VEVENT
 BEGIN:VEVENT
 UID:881f494296a1296889fb1cbe98c1a7bf@art-calendar-tokyo
 DTSTART;VALUE=DATE:20260221
 DTEND;VALUE=DATE:20260412
 SUMMARY:drawings: 5 artists
-LOCATION:KOSAKU KANECHIKA TERRADA ART COMPLEX I/5F
-DESCRIPTION:5組の作家によるドローイング展。KOSAKU KANECHIKA ギャラリーにて開催。
+LOCATION:KOSAKU KANECHIKA TERRADA ART COMPLEX I 5F
+DESCRIPTION:5組のアーティストによるドローイング展。KOSAKU KANECHIKAギャラリー主催でTERRADA ART COMPLEX I5階にて開催中。ドローイングという媒体を通じて各アーティストの表現を比較できるグループ展。
+URL:https://warehouseofart.org/
 END:VEVENT
 BEGIN:VEVENT
 UID:0d52ffd03e36bb89adfc8cf16ce30571@art-calendar-tokyo
@@ -600,23 +550,26 @@ DTSTART;VALUE=DATE:20260421
 DTEND;VALUE=DATE:20260914
 SUMMARY:波板と珊瑚礁－建築を遠くに投げる八の実践
 LOCATION:WHAT MUSEUM
-DESCRIPTION:WHAT MUSEUM による建築と珊瑚礁をテーマにした展示。八の建築的実践を紹介する特別展。
+DESCRIPTION:WHAT MUSEUMにて2026年4月21日から9月13日まで開催の建築と空間をテーマにした展示。「八の実践」を通じて建築を遠くへ投げかける表現を探求する興味深い展示。5ヶ月以上の長期開催。
+URL:https://warehouseofart.org/
 END:VEVENT
 BEGIN:VEVENT
-UID:d2f3983aeb2540320b597899215e9ef1@art-calendar-tokyo
+UID:471829b910c058b403b4fd02694a8db4@art-calendar-tokyo
 DTSTART;VALUE=DATE:20260307
 DTEND;VALUE=DATE:20260419
-SUMMARY:それでも私は愛と呼びたい "And Still\, I Call it Love"
-LOCATION:Tokyo International Gallery TERRADA ART COMPLEXⅡ/2F
-DESCRIPTION:Tokyo International Gallery による груп展。愛をテーマにした現代アート展示。
+SUMMARY:それでも私は愛と呼びたい “And Still\, I Call it Love”
+LOCATION:Tokyo International Gallery TERRADA ART COMPLEXⅡ 2F
+DESCRIPTION:Tokyo International Galleryによる展示。TERRADA ART COMPLEXⅡ2階 Galleriesセクションで3月7日から4月18日まで開催。「愛」をテーマにした現代アート作品を展示。
+URL:https://warehouseofart.org/
 END:VEVENT
 BEGIN:VEVENT
 UID:275d6705371de2e29decd077df32d779@art-calendar-tokyo
 DTSTART;VALUE=DATE:20260404
 DTEND;VALUE=DATE:20260524
 SUMMARY:デコレータークラブ: 重いバッグの中身
-LOCATION:KOTARO NUKAGA Tennoz TERRADA ART COMPLEXⅡ/1F
-DESCRIPTION:KOTARO NUKAGA Tennoz によるグループ展。TERRADA ART COMPLEXⅡ 1F で開催。
+LOCATION:KOTARO NUKAGA Tennoz TERRADA ART COMPLEXⅡ 1F
+DESCRIPTION:KOTARO NUKAGA Tennozによる展示。TERRADA ART COMPLEXⅡ1階 Galleriesセクションで4月4日から5月23日まで開催。「デコレータークラブ」と題し、重いバッグの中身をテーマにした展示。
+URL:https://warehouseofart.org/
 END:VEVENT
 BEGIN:VEVENT
 UID:b147e7a9dc8c2ec5189fef05b8177000@art-calendar-tokyo
@@ -743,5 +696,59 @@ SUMMARY:TOKYOROOMS展 〜40の部屋、40通りの生き方〜
 LOCATION:TOKYO NODE GALLERY A/B/C
 DESCRIPTION:「ソーシャルインテリア」主宰のグループ展で、40組のクリエイターが手がける個性あふれる部屋を展示し、多様な住まいのあり方を提示する。\n一般1\,900円小人950円（全て税込）
 URL:https://www.tokyonode.jp/events/tokyorooms/index.html
+END:VEVENT
+BEGIN:VEVENT
+UID:0a1e7d8cdce8c94c1d5c7af4aaa5ba23@art-calendar-tokyo
+DTSTART;VALUE=DATE:20260127
+DTEND;VALUE=DATE:20260413
+SUMMARY:東京都美術館開館100周年記念　スウェーデン絵画　北欧の光、日常のかがやき
+LOCATION:東京都美術館
+DESCRIPTION:北欧スウェーデンの画家たちによる絵画展。19世紀後半から20世紀初頭にかけての瑞典美術の流れをフォローし、北欧の光の捉え方や日常景_sceneの描绘など、日本の美術館では珍しい瑞典絵画の魅力をお伝えします。開館100周年特别展として举办されます。
+URL:https://www.tobikan.jp/exhibition/2025_sweden.html
+END:VEVENT
+BEGIN:VEVENT
+UID:d088a96a5017241e4461ae5ee36c3176@art-calendar-tokyo
+DTSTART;VALUE=DATE:20260725
+DTEND;VALUE=DATE:20261019
+SUMMARY:東京都美術館開館100周年記念　大英博物館日本美術コレクション　百花繚乱～海を越えた江戸絵画
+LOCATION:東京都美術館
+DESCRIPTION:世界的に著名的な大英博物館が所蔵する日本美術コレクションの中から、江戸絵画に焦点を当てた特別展。海を越えた先でどのように評価・受容されてきたかを手紙・絵画・陶磁器などで展示し、异文化사이の美の交流を明らかにします。
+URL:https://www.tobikan.jp/exhibition/2026_britishmuseum.html
+END:VEVENT
+BEGIN:VEVENT
+UID:66f1800a07b39250f3e1d314a9b02743@art-calendar-tokyo
+DTSTART;VALUE=DATE:20260610
+DTEND;VALUE=DATE:20260702
+SUMMARY:東京都美術館開館100周年記念　都美セレクション グループ展 2026
+LOCATION:東京都美術館
+DESCRIPTION:東京都美術館のコレクションを活用したグループ展で、館内の所蔵作品をもとに多名の作家による展示构成。開館100周年を纪念した企画として、现代美術と歴史的コレクションの対話を間近で体验できます。
+URL:https://www.tobikan.jp/exhibition/2026_groupshow.html
+END:VEVENT
+BEGIN:VEVENT
+UID:bcf0b90e985fbb6e8de3d2a1448c53d2@art-calendar-tokyo
+DTSTART;VALUE=DATE:20261114
+DTEND;VALUE=DATE:20270329
+SUMMARY:東京都美術館開館100周年記念　オルセー美術館所蔵　いまを生きる歓び
+LOCATION:東京都美術館
+DESCRIPTION:パリのオルセー美術館が所蔵するフランス近代美術の至宝を一堂に展示する特别展。1880年代から1930年代頃のフランス絵画を中心に、日常の歓びや生の美しさを捉えた作品群を通じて、フランス近代美術の黄金時代を堪能できます。
+URL:https://www.tobikan.jp/exhibition/2026_orsay.html
+END:VEVENT
+BEGIN:VEVENT
+UID:3aedce38fff2ec87d25e61dea3f85e31@art-calendar-tokyo
+DTSTART;VALUE=DATE:20260723
+DTEND;VALUE=DATE:20261008
+SUMMARY:東京都美術館開館100周年記念　この場所の風景―上野・大牟田・ブエノスアイレス
+LOCATION:東京都美術館
+DESCRIPTION:日本の上野・福岡県大牟田・アルゼンチンのブエノスアイレスという3つの場所を対象にした「places（ 장소たち）」の写真とビデオを展示する企画展。各都市の风景を比較しながら、地点之间的文化和歴史的联系を発見できる構成になっています。
+URL:https://www.tobikan.jp/exhibition/2026_viewsofthisplace.html
+END:VEVENT
+BEGIN:VEVENT
+UID:8b578ba25f4a8cf93cb8ba2a085095a0@art-calendar-tokyo
+DTSTART;VALUE=DATE:20260428
+DTEND;VALUE=DATE:20260706
+SUMMARY:東京都美術館開館100周年記念　アンドリュー・ワイエス展
+LOCATION:東京都美術館
+DESCRIPTION:アメリカ現代美術界最重要的画家の一人であるアンドリュー・ワイエスの回顧展。水彩技法とリアリズム绘画で知られる彼の代表的作品が一堂に展示され、アメリカ_ruralの风景や日常景を细腻な笔致で描いた世界を間近で体验できます。
+URL:https://www.tobikan.jp/exhibition/2026_wyeth.html
 END:VEVENT
 END:VCALENDAR

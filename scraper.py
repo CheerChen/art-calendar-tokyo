@@ -44,6 +44,7 @@ SOURCES = [
         "url": "https://www.ueno-mori.org/exhibitions/",
         "list_selector": "ul#ScheduleList > li",
         "link_selector": "a",
+        "detail_selector": "#ExhibitMain",
     },
     {
         "name": "東京都美術館",
@@ -116,7 +117,7 @@ For each event, return:
 - end_time (string): closing time in HH:MM format (24h), or null if not specified
 - reservation_required (boolean): true if advance booking/reservation is explicitly required, false otherwise
 - url (string): detail page URL if found, otherwise null
-- summary (string): 1-2 sentence description of the event content
+- summary (string): 3-4 sentence description of the event content in Japanese
 - recommendation (string): based on the exhibition title, artist/theme reputation, and venue prestige, classify as one of:
   "must_see" — internationally significant exhibitions, major retrospectives of renowned artists, or blockbuster museum collaborations
   "recommended" — notable solo exhibitions, well-known artists, or topical/unique themes
@@ -127,7 +128,7 @@ For each event, return:
 Return ONLY a JSON array. No markdown fences, no explanation.
 If zero events found, return []."""
 
-ENRICH_PROMPT_BASIC = """Given a list of art exhibition titles and venues, add a short Japanese summary (1-2 sentences) and a recommendation classification for each.
+ENRICH_PROMPT_BASIC = """Given a list of art exhibition titles and venues, add a Japanese summary (3-4 sentences) and a recommendation classification for each.
 
 recommendation values:
 - "must_see" — internationally significant exhibitions, major retrospectives of renowned artists, or blockbuster museum collaborations
@@ -143,7 +144,7 @@ ENRICH_PROMPT_DETAIL = """Given a list of art exhibitions with their detail page
 
 For each item, return:
 - "index" (int): the original index
-- "summary" (string): 1-2 sentence Japanese description based on the detail content
+- "summary" (string): 3-4 sentence Japanese description based on the detail content
 - "recommendation" (string): "must_see", "recommended", or "normal"
   must_see = internationally significant exhibitions, major retrospectives, blockbuster collaborations
   recommended = notable solo exhibitions, well-known artists, unique themes
@@ -236,11 +237,11 @@ def fetch_detail_text(url: str, selector: str, detail_cache: dict) -> str | None
         return None
 
     soup = BeautifulSoup(html, "html.parser")
-    el = soup.select_one(selector)
-    if not el:
+    els = soup.select(selector)
+    if not els:
         return None
 
-    text = el.get_text(separator="\n").strip()
+    text = "\n\n".join(el.get_text(separator="\n").strip() for el in els)
     text = re.sub(r"\n{3,}", "\n\n", text)
 
     detail_cache[url] = {
@@ -433,7 +434,7 @@ def _call_enrich_llm(client: anthropic.Anthropic, system_prompt: str, user_msg: 
     """Call LLM for enrichment, return parsed list."""
     resp = client.messages.create(
         model="MiniMax-M2.7",
-        max_tokens=8192,
+        max_tokens=16384,
         system=system_prompt,
         messages=[{"role": "user", "content": user_msg}],
         temperature=0.1,
@@ -508,7 +509,7 @@ def extract_events(client: anthropic.Anthropic, source_name: str, source_url: st
     user_msg = f"Source: {source_name}\nURL: {source_url}\n\nPage content:\n{text}"
     resp = client.messages.create(
         model="MiniMax-M2.7",
-        max_tokens=8192,
+        max_tokens=16384,
         system=SYSTEM_PROMPT_TEMPLATE.format(today=datetime.now(timezone.utc).strftime("%Y-%m-%d")),
         messages=[
             {"role": "user", "content": user_msg},
@@ -704,7 +705,24 @@ def main():
             }
         else:
             events = extract_events(client, src["name"], src["url"], text)
-            print(f"  → {len(events)} events extracted (LLM called)")
+            print(f"  → {len(events)} events extracted", end="", flush=True)
+
+            # Fetch detail pages if selector configured
+            selector = src.get("detail_selector")
+            if selector and events:
+                detail_texts = {}
+                for e in events:
+                    url = e.get("url")
+                    if not url:
+                        continue
+                    dt = fetch_detail_text(url, selector, detail_cache)
+                    if dt:
+                        detail_texts[url] = dt
+                if detail_texts:
+                    print(f", {len(detail_texts)} details fetched, enriching...", end="", flush=True)
+                    events = enrich_events(client, events, detail_texts)
+
+            print(f" done")
             cache[src["name"]] = {
                 "content_hash": h,
                 "fetched_at": datetime.now(timezone.utc).isoformat(),
@@ -725,56 +743,8 @@ def main():
     save_file(run_dir / "result.json", json_str)
     save_file(Path("result.json"), json_str)
 
-    # Generate ICS calendar
-    ics_lines = [
-        "BEGIN:VCALENDAR",
-        "VERSION:2.0",
-        "PRODID:-//Tokyo Art Calendar//EN",
-        "CALSCALE:GREGORIAN",
-        "X-WR-CALNAME:Tokyo Art Calendar",
-        "X-WR-TIMEZONE:Asia/Tokyo",
-    ]
-    for src in result["sources"]:
-        for ev in src["events"]:
-            if not ev.get("start_date"):
-                continue
-            sd = ev["start_date"].replace("-", "")
-            ed = ev.get("end_date", "")
-            if ed:
-                # VALUE=DATE end is exclusive, add one day
-                from datetime import timedelta
-                end_dt = datetime.strptime(ed, "%Y-%m-%d") + timedelta(days=1)
-                ed = end_dt.strftime("%Y%m%d")
-            else:
-                ed = sd
-            uid = hashlib.md5(f"{ev.get('title','')}{sd}{src['name']}".encode()).hexdigest()
-            summary = (ev.get("title") or "").replace(",", "\\,").replace("\n", " ")
-            venue = (ev.get("venue") or "").replace(",", "\\,").replace("\n", " ")
-            desc_parts = []
-            if ev.get("summary"):
-                desc_parts.append(ev["summary"])
-            if ev.get("admission"):
-                desc_parts.append(ev["admission"])
-            if ev.get("closed_days"):
-                desc_parts.append(f"休館: {ev['closed_days']}")
-            if ev.get("reservation_required"):
-                desc_parts.append("要予約")
-            desc = "\\n".join(desc_parts).replace(",", "\\,")
-            url = ev.get("url") or ""
-            ics_lines.append("BEGIN:VEVENT")
-            ics_lines.append(f"UID:{uid}@art-calendar-tokyo")
-            ics_lines.append(f"DTSTART;VALUE=DATE:{sd}")
-            ics_lines.append(f"DTEND;VALUE=DATE:{ed}")
-            ics_lines.append(f"SUMMARY:{summary}")
-            if venue:
-                ics_lines.append(f"LOCATION:{venue}")
-            if desc:
-                ics_lines.append(f"DESCRIPTION:{desc}")
-            if url:
-                ics_lines.append(f"URL:{url}")
-            ics_lines.append("END:VEVENT")
-    ics_lines.append("END:VCALENDAR")
-    save_file(Path("calendar.ics"), "\r\n".join(ics_lines))
+    from generate_ics import generate_ics
+    save_file(Path("calendar.ics"), generate_ics(result))
 
     print(f"\nDone: {len(result['sources'])} sources, {sum(len(s['events']) for s in result['sources'])} events")
 
