@@ -755,9 +755,6 @@ def main():
     save_file(run_dir / "result.json", json_str)
     save_file(Path("result.json"), json_str)
 
-    from generate_ics import generate_ics
-    save_file(Path("calendar.ics"), generate_ics(result))
-
     print(f"\nDone: {len(result['sources'])} sources, {sum(len(s['events']) for s in result['sources'])} events")
 
 

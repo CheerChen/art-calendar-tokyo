@@ -171,9 +171,6 @@ def main():
     })
     save_file(result_path, json.dumps(result, ensure_ascii=False, indent=2))
 
-    from generate_ics import generate_ics
-    save_file(Path("calendar.ics"), generate_ics(result))
-
     print(f"\nResults: {len(events)} events")
     for e in events:
         print(f"  {e.get('title', '')[:40]} | {e.get('url', '')}")

@@ -34,7 +34,6 @@ jobs:
           mkdir -p dist
           cp viewer.html dist/index.html
           cp result.json dist/
-          cp calendar.ics dist/
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
