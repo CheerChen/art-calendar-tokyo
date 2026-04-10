@@ -69,14 +69,18 @@ SOURCES = [
         "name": "寺田倉庫",
         "url": "https://warehouseofart.org/",
         "list_selector": "li.frontEventItem",
+        "link_selector": "a",
     },
     {
         "name": "横浜美術館",
         "url": "https://yokohama.art.museum/exhibition/",
+        "list_selector": "div.exhibitionMain__set",
+        "link_selector": "a",
     },
     {
         "name": "東京オペラシティアートギャラリー",
         "url": "https://www.operacity.jp/contents/exhibition/upcoming?lang=ja&ag_home=0",
+        "parser": "operacity",
     },
     {
         "name": "SOMPO美術館",
@@ -337,9 +341,75 @@ def parse_tobikan(raw: str, today: str) -> list:
     return events
 
 
+def parse_operacity(raw: str, today: str) -> list:
+    import re
+    from bs4 import BeautifulSoup
+
+    soup = BeautifulSoup(raw, "html.parser")
+    base = "https://www.operacity.jp"
+    events = []
+
+    for sec in soup.select("section.p-exhList__section"):
+        # Parse date range from heading: "2026.04.16［木］ - 06.24［水］"
+        h2 = sec.select_one("h2.c-exhHeading")
+        if not h2:
+            continue
+        heading_text = h2.get_text().strip()
+        m = re.search(r"(\d{4})\.(\d{2})\.(\d{2}).*?-\s*(\d{2})\.(\d{2})", heading_text)
+        if not m:
+            continue
+        year = m.group(1)
+        start_date = f"{year}-{m.group(2)}-{m.group(3)}"
+        end_month, end_day = int(m.group(4)), int(m.group(5))
+        start_month = int(m.group(2))
+        end_year = int(year) + 1 if end_month < start_month else int(year)
+        end_date = f"{end_year}-{end_month:02d}-{end_day:02d}"
+
+        if end_date < today:
+            continue
+
+        for item in sec.select("div.p-exhList__item"):
+            info = item.select_one("div.p-exhList__info")
+            if not info:
+                continue
+
+            title_el = info.select_one("h3.p-exhList__headerTitle")
+            if not title_el:
+                continue
+            title = title_el.get_text().strip()
+
+            place_el = info.select_one("span.p-exhList__headerPlace")
+            venue = "東京オペラシティ アートギャラリー"
+            if place_el:
+                venue += " " + place_el.get_text().strip()
+
+            link_el = info.select_one("div.p-exhList__more a")
+            url = (base + link_el["href"]) if link_el and link_el.get("href") else None
+
+            fig = item.select_one("figure.p-exhList__thumb img")
+            image = fig.get("src") if fig else None
+
+            events.append({
+                "title": title,
+                "venue": venue,
+                "start_date": start_date,
+                "end_date": end_date,
+                "start_time": None,
+                "end_time": None,
+                "reservation_required": False,
+                "url": url,
+                "image": image,
+                "summary": None,
+                "recommendation": None,
+            })
+
+    return events
+
+
 PARSERS = {
     "mot": parse_mot,
     "tobikan": parse_tobikan,
     "nact": parse_nact,
     "tokyonode": parse_tokyonode,
+    "operacity": parse_operacity,
 }

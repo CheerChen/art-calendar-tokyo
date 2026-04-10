@@ -109,7 +109,6 @@ def extract_list_text(raw_html: str, src: dict) -> str | None:
                 href = src["url"].rsplit("/", 1)[0] + "/" + href
             el_text = f"[URL: {href}]\n{el_text}"
         parts.append(el_text)
-    parts.sort()
     return "\n\n".join(parts) if parts else None
 
 

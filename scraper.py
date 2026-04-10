@@ -24,6 +24,8 @@ def process_source(client, src, cache, detail_cache, run_dir):
     try:
         if "api" in src:
             text = fetch_page(src["api"])
+        elif "parser" in src:
+            text = fetch_page(src["url"])
         else:
             raw_html = fetch_page(src["url"])
             text = extract_list_text(raw_html, src)
@@ -134,6 +136,11 @@ def process_source(client, src, cache, detail_cache, run_dir):
                 events = enrich_events(client, events, detail_texts, detail_cache)
 
         print(f" done")
+
+    # --- Fallback: fill missing URL with source URL ---
+    for e in events:
+        if not e.get("url"):
+            e["url"] = src["url"]
 
     # --- Cache fallback: don't overwrite good cache with empty result ---
     if not events and cached and cached.get("events"):
