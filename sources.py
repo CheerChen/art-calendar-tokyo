@@ -68,8 +68,7 @@ SOURCES = [
     {
         "name": "寺田倉庫",
         "url": "https://warehouseofart.org/",
-        "list_selector": "li.frontEventItem",
-        "link_selector": "a",
+        "parser": "warehouse",
     },
     {
         "name": "横浜美術館",
@@ -341,6 +340,69 @@ def parse_tobikan(raw: str, today: str) -> list:
     return events
 
 
+def parse_warehouse(raw: str, today: str) -> list:
+    import re
+    from bs4 import BeautifulSoup
+
+    soup = BeautifulSoup(raw, "html.parser")
+    events = []
+
+    for item in soup.select("li.frontEventItem"):
+        a = item.find("a", href=True)
+        if not a:
+            continue
+
+        txt = a.select_one("div.eventTxtArea")
+        if not txt:
+            continue
+
+        title_el = txt.select_one("div.eventTitle")
+        if not title_el:
+            continue
+        title = title_el.get_text().strip()
+
+        place1 = txt.select_one("div.place1")
+        venue = place1.get_text().strip() if place1 else "寺田倉庫"
+
+        date_el = txt.select_one("div.dateTimeArea")
+        date_text = date_el.get_text().strip() if date_el else ""
+
+        # Parse "2026/4/21(Tue)-2026/6/28(Sun)" or with fullwidth parens
+        start_date = None
+        end_date = None
+        m = re.search(r"(\d{4})/(\d{1,2})/(\d{1,2})\s*[（(].*?[）)]\s*-\s*(\d{4})/(\d{1,2})/(\d{1,2})", date_text)
+        if m:
+            start_date = f"{m.group(1)}-{int(m.group(2)):02d}-{int(m.group(3)):02d}"
+            end_date = f"{m.group(4)}-{int(m.group(5)):02d}-{int(m.group(6)):02d}"
+
+        if end_date and end_date < today:
+            continue
+        if not start_date:
+            continue
+        if "PIGMENT TOKYO" in title:
+            continue
+
+        url = a.get("href")
+        img_el = item.select_one("div.eventImage img")
+        image = img_el.get("src") if img_el else None
+
+        events.append({
+            "title": title,
+            "venue": venue,
+            "start_date": start_date,
+            "end_date": end_date,
+            "start_time": None,
+            "end_time": None,
+            "reservation_required": False,
+            "url": url,
+            "image": image,
+            "summary": None,
+            "recommendation": None,
+        })
+
+    return events
+
+
 def parse_operacity(raw: str, today: str) -> list:
     import re
     from bs4 import BeautifulSoup
@@ -412,4 +474,5 @@ PARSERS = {
     "nact": parse_nact,
     "tokyonode": parse_tokyonode,
     "operacity": parse_operacity,
+    "warehouse": parse_warehouse,
 }
