@@ -74,7 +74,7 @@ def process_source(client, src, cache, detail_cache, run_dir):
                         detail_texts[u] = dt
                 events = PARSERS[src["parser"]](text, today) if "parser" in src else events
                 print(f" enriching...", end="", flush=True)
-                events = enrich_events(client, events, detail_texts)
+                events = enrich_events(client, events, detail_texts, detail_cache)
                 print(f" done")
                 cache[name] = {
                     "content_hash": h,
@@ -113,7 +113,7 @@ def process_source(client, src, cache, detail_cache, run_dir):
             print(f", details: {fetched} fetched / {cached_count} cached", end="", flush=True)
 
         print(f", enriching...", end="", flush=True)
-        events = enrich_events(client, events, detail_texts)
+        events = enrich_events(client, events, detail_texts, detail_cache)
         print(f" done")
     else:
         events = extract_events(client, name, src["url"], text)
@@ -131,7 +131,7 @@ def process_source(client, src, cache, detail_cache, run_dir):
                     detail_texts[url] = dt
             if detail_texts:
                 print(f", {len(detail_texts)} details fetched, enriching...", end="", flush=True)
-                events = enrich_events(client, events, detail_texts)
+                events = enrich_events(client, events, detail_texts, detail_cache)
 
         print(f" done")
 
@@ -174,9 +174,8 @@ def main():
             "content_length": text_len,
             "events": events,
         })
-
-    save_cache(cache)
-    save_detail_cache(detail_cache)
+        save_cache(cache)
+        save_detail_cache(detail_cache)
 
     json_str = json.dumps(result, ensure_ascii=False, indent=2)
     save_file(run_dir / "result.json", json_str)

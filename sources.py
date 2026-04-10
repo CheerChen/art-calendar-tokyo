@@ -124,6 +124,7 @@ For each event, return:
 - end_time (string): closing time in HH:MM format (24h), or null if not specified
 - reservation_required (boolean): true if advance booking/reservation is explicitly required, false otherwise
 - url (string): detail page URL if found, otherwise null
+- image (string): main visual/key-visual image URL (absolute URL starting with http), or null if not found
 - summary (string): 3-4 sentence description of the event content in Japanese
 - recommendation (string): based on the exhibition title, artist/theme reputation, and venue prestige, classify as one of:
   "must_see" — internationally significant exhibitions, major retrospectives of renowned artists, or blockbuster museum collaborations
@@ -199,6 +200,7 @@ def parse_mot(raw: str, today: str) -> list:
             "admission": None,
             "reservation_required": False,
             "url": "https://www.mot-art-museum.jp" + item.get("permalink", ""),
+            "image": ("https://www.mot-art-museum.jp" + item["imagePc"]) if item.get("imagePc") else None,
             "summary": None,
             "recommendation": None,
             "detail_fetched": False,
@@ -222,6 +224,7 @@ def parse_nact(raw: str, today: str) -> list:
             "end_time": None,
             "reservation_required": False,
             "url": "https://www.nact.jp" + item.get("sp_ex_permalink", ""),
+            "image": ("https://www.nact.jp" + item["sp_ex_thumbnail"]) if item.get("sp_ex_thumbnail") else None,
             "summary": None,
             "recommendation": None,
         })
@@ -271,6 +274,7 @@ def parse_tokyonode(raw: str, today: str) -> list:
             "end_time": end_time,
             "reservation_required": has_ticket,
             "url": "https://www.tokyonode.jp" + item.get("this_url", ""),
+            "image": ("https://www.tokyonode.jp" + item["img_key"]) if item.get("img_key") else None,
             "summary": None,
             "recommendation": None,
         })

@@ -79,8 +79,20 @@ def extract_list_text(raw_html: str, src: dict) -> str | None:
     link_sel = src.get("link_selector")
     base_url = "/".join(src["url"].split("/", 3)[:3])
     parts = []
+    PLACEHOLDER_IMGS = {"_blank.png", "noimage", "no_image", "no-image", "spacer"}
     for el in items:
         el_text = re.sub(r"\n{3,}", "\n\n", el.get_text(separator="\n").strip())
+        # Extract first meaningful image
+        img = el.find("img")
+        if img:
+            img_url = img.get("data-pcimg") or img.get("src") or ""
+            if img_url and not any(p in img_url.lower() for p in PLACEHOLDER_IMGS):
+                if img_url.startswith("/"):
+                    img_url = base_url + img_url
+                elif not img_url.startswith("http"):
+                    img_url = src["url"].rsplit("/", 1)[0] + "/" + img_url
+                el_text = f"[IMAGE: {img_url}]\n{el_text}"
+        # Extract links
         links = []
         if link_sel == "self":
             if el.name == "a" and el.get("href"):
@@ -99,6 +111,16 @@ def extract_list_text(raw_html: str, src: dict) -> str | None:
         parts.append(el_text)
     parts.sort()
     return "\n\n".join(parts) if parts else None
+
+
+def extract_og_image(html: str) -> str | None:
+    """Extract og:image or twitter:image from HTML."""
+    soup = BeautifulSoup(html, "html.parser")
+    for prop in ["og:image", "twitter:image"]:
+        tag = soup.find("meta", property=prop) or soup.find("meta", attrs={"name": prop})
+        if tag and tag.get("content"):
+            return tag["content"]
+    return None
 
 
 def fetch_detail_text(url: str, selector: str, detail_cache: dict) -> str | None:
@@ -125,8 +147,11 @@ def fetch_detail_text(url: str, selector: str, detail_cache: dict) -> str | None
     text = "\n\n".join(el.get_text(separator="\n").strip() for el in els)
     text = re.sub(r"\n{3,}", "\n\n", text)
 
+    image = extract_og_image(html)
+
     detail_cache[url] = {
         "text": text,
+        "image": image,
         "fetched_at": datetime.now(timezone.utc).isoformat(),
     }
     return text

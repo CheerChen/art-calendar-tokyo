@@ -66,6 +66,7 @@
   .tooltip .tt-badge { display: inline-block; font-size: 11px; padding: 1px 8px; border-radius: 8px; margin-top: 4px; }
   .tooltip .tt-badge.must_see { background: #e74c3c; color: #fff; }
   .tooltip .tt-badge.recommended { background: #f39c12; color: #fff; }
+  .tooltip .tt-image { width: 100%; max-height: 180px; object-fit: cover; border-radius: 4px; margin-bottom: 8px; }
   .tooltip .tt-info { margin-top: 8px; color: #ccc; font-size: 12px; }
   .tooltip .tt-info div { margin: 2px 0; }
   .tooltip .tt-summary { margin-top: 8px; color: #ddd; font-size: 12px; border-top: 1px solid #333; padding-top: 8px; }
@@ -77,6 +78,7 @@
   .event-card { display: flex; gap: 14px; padding: 12px 14px; background: #fff; border-radius: 6px; margin-bottom: 8px; border-left: 4px solid #999; cursor: pointer; transition: box-shadow 0.15s; }
   .event-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
   .event-card .card-date { flex-shrink: 0; width: 90px; font-size: 12px; color: #666; line-height: 1.8; }
+  .event-card .card-image { max-width: 100%; max-height: 200px; border-radius: 4px; object-fit: contain; margin-top: 8px; }
   .event-card .card-body { flex: 1; min-width: 0; }
   .event-card .card-title { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
   .event-card .card-venue { font-size: 12px; color: #888; }
@@ -140,6 +142,7 @@
   [data-theme="dark"] .event-card .card-date { color: #aaa; }
   [data-theme="dark"] .event-card .card-venue { color: #888; }
   [data-theme="dark"] .event-card .card-summary { color: #999; }
+  [data-theme="dark"] .event-card .card-image { background: #333; }
   [data-theme="dark"] .event-card .card-meta { color: #777; }
 </style>
 </head>
@@ -312,7 +315,9 @@ const tooltip = document.getElementById('tooltip');
 function showTooltip(e, ev) {
   const rec = ev.recommendation || 'normal';
   const recLabels = { must_see: 'Must See', recommended: 'Recommended' };
-  let html = `<div class="tt-title">${esc(ev.title)}</div>`;
+  let html = '';
+  if (ev.image) html += `<img class="tt-image" src="${esc(ev.image)}" alt="" onerror="this.remove()">`;
+  html += `<div class="tt-title">${esc(ev.title)}</div>`;
   html += `<div class="tt-venue">${esc(ev.venue || '')} - ${esc(ev._source)}</div>`;
   if (recLabels[rec]) html += `<span class="tt-badge ${rec}">${recLabels[rec]}</span>`;
   html += `<div class="tt-info">`;
@@ -365,6 +370,7 @@ function renderEventCard(ev) {
   if (ev.closed_days) metaParts.push('休館: ' + ev.closed_days);
   if (ev.reservation_required) metaParts.push('要予約');
   if (metaParts.length) html += `<div class="card-meta">${metaParts.map(m => `<span>${esc(m)}</span>`).join('')}</div>`;
+  if (ev.image) html += `<img class="card-image" src="${esc(ev.image)}" alt="" loading="lazy" onerror="this.remove()">`;
   html += `</div></div>`;
   return html;
 }

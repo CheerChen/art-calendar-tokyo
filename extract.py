@@ -63,7 +63,7 @@ def extract_events(client: anthropic.Anthropic, source_name: str, source_url: st
     return events
 
 
-def enrich_events(client: anthropic.Anthropic, events: list, detail_texts: dict | None = None) -> list:
+def enrich_events(client: anthropic.Anthropic, events: list, detail_texts: dict | None = None, detail_cache: dict | None = None) -> list:
     """Enrich events with summary/recommendation via LLM."""
     if not events:
         return events
@@ -102,5 +102,13 @@ def enrich_events(client: anthropic.Anthropic, events: list, detail_texts: dict 
                     event["admission"] = em["admission"]
                 if "reservation_required" in em:
                     event["reservation_required"] = em["reservation_required"]
+
+        # Populate image from detail_cache (og:image)
+        if detail_cache:
+            url = event.get("url")
+            if url and url in detail_cache:
+                img = detail_cache[url].get("image")
+                if img:
+                    event["image"] = img
 
     return events
