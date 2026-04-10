@@ -116,7 +116,7 @@ Exclude any online-only events (オンライン, ウェビナー, Zoom, 配信).
 常設展など常時開催の展示は除外する。ただしコレクション展は含めてよい。
 明確な開催期間（start_date と end_date）がないイベント（毎月開催、随時開催、通年開催など）は除外する。
 
-Today's date is {today}. Only include events that have NOT ended yet (end_date >= today, or start_date >= today if no end_date). Exclude all past events.
+Today's date is {today}. Only include events that ended within the last 3 days or have not ended yet (end_date >= today - 3 days). If there is no end_date, include if start_date >= today - 3 days. Exclude events that ended more than 3 days ago.
 
 For each event, return:
 - title (string): event name
@@ -174,6 +174,16 @@ Return ONLY a JSON array. No markdown fences, no explanation."""
 
 # --- Parsers ---
 
+CUTOFF_DAYS = 3
+
+
+def _cutoff_date(today: str) -> str:
+    """Return date string CUTOFF_DAYS before today."""
+    from datetime import datetime, timedelta
+    dt = datetime.strptime(today, "%Y-%m-%d") - timedelta(days=CUTOFF_DAYS)
+    return dt.strftime("%Y-%m-%d")
+
+
 def _fmt_date(d: str) -> str | None:
     """Convert YYYYMMDD to YYYY-MM-DD."""
     if d and len(d) >= 8:
@@ -183,11 +193,11 @@ def _fmt_date(d: str) -> str | None:
 
 def parse_mot(raw: str, today: str) -> list:
     data = json.loads(raw)
-    today_compact = today.replace("-", "")
+    cutoff_compact = _cutoff_date(today).replace("-", "")
     events = []
     for item in data:
         end = item.get("end", "")
-        if end < today_compact:
+        if end < cutoff_compact:
             continue
         crown = (item.get("crownName") or "").strip()
         title = (item.get("title") or "").strip()
@@ -213,10 +223,11 @@ def parse_mot(raw: str, today: str) -> list:
 
 def parse_nact(raw: str, today: str) -> list:
     data = json.loads(raw)
+    cutoff = _cutoff_date(today)
     events = []
     for item in data:
         end = item.get("sp_ex_to", "")
-        if not end or end < today:
+        if not end or end < cutoff:
             continue
         events.append({
             "title": item.get("sp_ex_title", ""),
@@ -236,6 +247,7 @@ def parse_nact(raw: str, today: str) -> list:
 
 def parse_tokyonode(raw: str, today: str) -> list:
     data = json.loads(raw).get("eventData", [])
+    cutoff = _cutoff_date(today)
     events = []
     for item in data:
         end_raw = (item.get("date_end_short") or "").strip()
@@ -250,9 +262,9 @@ def parse_tokyonode(raw: str, today: str) -> list:
         start_date = parse_dot_date(start_raw)
         end_date = parse_dot_date(end_raw)
 
-        if end_date and end_date < today:
+        if end_date and end_date < cutoff:
             continue
-        if not end_date and start_date and start_date < today:
+        if not end_date and start_date and start_date < cutoff:
             continue
 
         start_time = None
@@ -317,7 +329,7 @@ def parse_tobikan(raw: str, today: str) -> list:
         else:
             end_date = None
 
-        if end_date and end_date < today:
+        if end_date and end_date < _cutoff_date(today):
             continue
 
         title = (row.get("title") or "").replace("<br>", " ").strip()
@@ -375,7 +387,7 @@ def parse_warehouse(raw: str, today: str) -> list:
             start_date = f"{m.group(1)}-{int(m.group(2)):02d}-{int(m.group(3)):02d}"
             end_date = f"{m.group(4)}-{int(m.group(5)):02d}-{int(m.group(6)):02d}"
 
-        if end_date and end_date < today:
+        if end_date and end_date < _cutoff_date(today):
             continue
         if not start_date:
             continue
@@ -427,7 +439,7 @@ def parse_operacity(raw: str, today: str) -> list:
         end_year = int(year) + 1 if end_month < start_month else int(year)
         end_date = f"{end_year}-{end_month:02d}-{end_day:02d}"
 
-        if end_date < today:
+        if end_date < _cutoff_date(today):
             continue
 
         for item in sec.select("div.p-exhList__item"):
