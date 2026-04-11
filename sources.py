@@ -134,7 +134,7 @@ For each event, return:
   "recommended" — notable solo exhibitions, well-known artists, or topical/unique themes
   "normal" — group shows, public competitions (公募展), calligraphy/craft guild exhibitions, or insufficient information to judge
 
-すべて日本語で回答してください。
+すべて日本語と英語のみで回答してください。韓国語・ロシア語・中国語簡体字・タイ語・アラビア語は絶対に使用しないでください。
 
 Return ONLY a JSON array. No markdown fences, no explanation.
 If zero events found, return []."""
@@ -146,7 +146,7 @@ recommendation values:
 - "recommended" — notable solo exhibitions, well-known artists, or topical/unique themes
 - "normal" — group shows, public competitions, or insufficient information to judge
 
-すべて日本語で回答してください。
+すべて日本語と英語のみで回答してください。韓国語・ロシア語・中国語簡体字・タイ語・アラビア語は絶対に使用しないでください。
 
 Return ONLY a JSON array with objects containing: "index" (int), "summary" (string), "recommendation" (string).
 No markdown fences, no explanation."""
@@ -167,7 +167,7 @@ For each item, return:
 - "admission" (string): ticket price info as-is from the page, or null
 - "reservation_required" (boolean): true if advance reservation/timed tickets are required or strongly recommended
 
-すべて日本語で回答してください。
+すべて日本語と英語のみで回答してください。韓国語・ロシア語・中国語簡体字・タイ語・アラビア語は絶対に使用しないでください。
 
 Return ONLY a JSON array. No markdown fences, no explanation."""
 

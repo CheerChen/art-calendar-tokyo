@@ -10,7 +10,7 @@ from fetch import (
     content_hash, fetch_page, extract_list_text, fetch_detail_text, save_file,
     DETAIL_TTL_DAYS,
 )
-from extract import create_client, extract_events, enrich_events
+from extract import create_client, extract_events, enrich_events, build_enrich_input
 
 
 def process_source(client, src, cache, detail_cache, run_dir):
@@ -43,10 +43,25 @@ def process_source(client, src, cache, detail_cache, run_dir):
         return None
 
     save_file(run_dir / f"{slug}.txt", text)
-    print(f"  {len(text)} chars")
+
+    # --- For parser sources, always parse first to compute LLM input ---
+    is_parser = "parser" in src
+    parsed_events = None
+    if is_parser:
+        parser_fn = PARSERS[src["parser"]]
+        parsed_events = parser_fn(text, today)
+
+    # --- Compute LLM input and hash ---
+    if is_parser:
+        _, llm_input = build_enrich_input(parsed_events)
+        h = content_hash(llm_input)
+        print(f"  {len(parsed_events)} parsed, {len(llm_input)} chars (LLM input)")
+    else:
+        llm_input = text
+        h = content_hash(llm_input)
+        print(f"  {len(llm_input)} chars")
 
     # --- Check cache ---
-    h = content_hash(text)
     cached = cache.get(name)
     if cached and cached.get("content_hash") == h:
         events = cached["events"]
@@ -74,7 +89,8 @@ def process_source(client, src, cache, detail_cache, run_dir):
                     dt = fetch_detail_text(u, selector, detail_cache)
                     if dt:
                         detail_texts[u] = dt
-                events = PARSERS[src["parser"]](text, today) if "parser" in src else events
+                if is_parser:
+                    events = parsed_events
                 print(f" enriching...", end="", flush=True)
                 events = enrich_events(client, events, detail_texts, detail_cache)
                 print(f" done")
@@ -87,14 +103,11 @@ def process_source(client, src, cache, detail_cache, run_dir):
                 print(f"  -> cache hit ({cached['fetched_at']})")
         else:
             print(f"  -> cache hit ({cached['fetched_at']})")
-        return events, len(text)
+        return events, len(llm_input)
 
-    # --- Extract ---
-    if "parser" in src:
-        parser_fn = PARSERS[src["parser"]]
-        events = parser_fn(text, today)
-        print(f"  -> parsed {len(events)} events", end="", flush=True)
-
+    # --- Extract / Enrich ---
+    if is_parser:
+        events = parsed_events
         detail_texts = None
         selector = src.get("detail_selector")
         if selector:
@@ -112,9 +125,9 @@ def process_source(client, src, cache, detail_cache, run_dir):
                         cached_count += 1
                     else:
                         fetched += 1
-            print(f", details: {fetched} fetched / {cached_count} cached", end="", flush=True)
+            print(f"  details: {fetched} fetched / {cached_count} cached,", end="", flush=True)
 
-        print(f", enriching...", end="", flush=True)
+        print(f" enriching...", end="", flush=True)
         events = enrich_events(client, events, detail_texts, detail_cache)
         print(f" done")
     else:
@@ -154,7 +167,7 @@ def process_source(client, src, cache, detail_cache, run_dir):
             "events": events,
         }
 
-    return events, len(text)
+    return events, len(llm_input)
 
 
 def main():
