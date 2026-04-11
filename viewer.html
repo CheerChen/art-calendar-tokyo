@@ -144,6 +144,31 @@
   [data-theme="dark"] .event-card .card-summary { color: #999; }
   [data-theme="dark"] .event-card .card-image { background: #333; }
   [data-theme="dark"] .event-card .card-meta { color: #777; }
+
+  /* Onboarding */
+  .onboarding-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 2000; justify-content: center; align-items: center; backdrop-filter: blur(2px); }
+  .onboarding-overlay.show { display: flex; }
+  .onboarding-card { background: #fff; border-radius: 16px; max-width: 400px; width: 90%; padding: 28px 24px; text-align: center; box-shadow: 0 12px 40px rgba(0,0,0,0.25); animation: onb-pop 0.3s ease; }
+  @keyframes onb-pop { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .onboarding-card .onb-step { font-size: 11px; color: #aaa; letter-spacing: 0.1em; margin-bottom: 8px; }
+  .onboarding-card .onb-title { font-size: 17px; font-weight: 600; margin-bottom: 6px; }
+  .onboarding-card .onb-desc { font-size: 13px; color: #666; line-height: 1.7; margin-bottom: 16px; }
+  .onboarding-card .onb-video { width: 100%; border-radius: 10px; margin-bottom: 16px; background: #f5f5f0; }
+  .onboarding-card .onb-btn { display: inline-block; padding: 10px 28px; border-radius: 24px; border: none; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+  .onboarding-card .onb-btn-next { background: #1a1a1a; color: #fff; }
+  .onboarding-card .onb-btn-next:hover { background: #333; }
+  .onboarding-card .onb-btn-done { background: none; color: #999; font-size: 12px; margin-top: 8px; padding: 6px 16px; }
+  .onboarding-card .onb-btn-done:hover { color: #333; }
+  .onboarding-card .onb-dots { display: flex; justify-content: center; gap: 6px; margin-bottom: 16px; }
+  .onboarding-card .onb-dot { width: 6px; height: 6px; border-radius: 50%; background: #ddd; }
+  .onboarding-card .onb-dot.active { background: #1a1a1a; }
+  [data-theme="dark"] .onboarding-card { background: #252525; color: #e0e0e0; }
+  [data-theme="dark"] .onboarding-card .onb-desc { color: #aaa; }
+  [data-theme="dark"] .onboarding-card .onb-video { background: #333; }
+  [data-theme="dark"] .onboarding-card .onb-btn-next { background: #fff; color: #1a1a1a; }
+  [data-theme="dark"] .onboarding-card .onb-btn-next:hover { background: #ddd; }
+  [data-theme="dark"] .onboarding-card .onb-btn-done:hover { color: #ccc; }
+  [data-theme="dark"] .onboarding-card .onb-dot.active { background: #fff; }
 </style>
 </head>
 <body>
@@ -191,6 +216,70 @@
 </div>
 
 <div class="tooltip" id="tooltip"></div>
+
+<div class="onboarding-overlay" id="onboarding">
+  <div class="onboarding-card" id="onboardingCard"></div>
+</div>
+
+<script>
+// Onboarding
+(function() {
+  if (localStorage.getItem('onboarding_done')) return;
+
+  const steps = [
+    {
+      step: 'STEP 1 / 2',
+      title: 'Recently - \u6700\u65B0\u306E\u5C55\u89A7\u4F1A\u60C5\u5831',
+      desc: '\u300CRecently\u300D\u30BF\u30D6\u3067\u306F\u3001\u958B\u50AC\u4E2D\u3084\u3053\u308C\u304B\u3089\u306E\u5C55\u89A7\u4F1A\u304C\u4E00\u89A7\u3067\u898B\u3089\u308C\u307E\u3059\u3002<br>\u30AB\u30FC\u30C9\u3092\u30BF\u30C3\u30D7\u3059\u308B\u3068\u3001\u5C55\u89A7\u4F1A\u306E\u8A73\u7D30\u30DA\u30FC\u30B8\u306B\u30B8\u30E3\u30F3\u30D7\u3067\u304D\u307E\u3059\u3088\uFF01',
+      video: './step_1.webm',
+      dots: [true, false],
+    },
+    {
+      step: 'STEP 2 / 2',
+      title: 'Timeline - \u30AC\u30F3\u30C8\u30C1\u30E3\u30FC\u30C8',
+      desc: '\u6A2A\u306B\u30B9\u30AF\u30ED\u30FC\u30EB\u3057\u3066\u3001\u3082\u3046\u3059\u3050\u7D42\u308F\u308B\u5C55\u89A7\u4F1A\u3084\u3001\u3053\u308C\u304B\u3089\u59CB\u307E\u308B\u5C55\u89A7\u4F1A\u3092\u30C1\u30A7\u30C3\u30AF\uFF01<br>\u30D0\u30FC\u306B\u30DE\u30A6\u30B9\u3092\u4E57\u305B\u308B\u3068\u8A73\u7D30\u304C\u898B\u3089\u308C\u307E\u3059\u3002\u898B\u9003\u3057\u3092\u9632\u3052\u3061\u3083\u3044\u307E\u3059\u3088\uFF01',
+      video: './step_2.webm',
+      dots: [false, true],
+    }
+  ];
+
+  let current = 0;
+  const overlay = document.getElementById('onboarding');
+  const card = document.getElementById('onboardingCard');
+
+  function renderStep(i) {
+    const s = steps[i];
+    let html = `<div class="onb-step">${s.step}</div>`;
+    html += `<div class="onb-title">${s.title}</div>`;
+    html += `<div class="onb-desc">${s.desc}</div>`;
+    if (s.video) {
+      html += `<video class="onb-video" autoplay loop muted playsinline><source src="${s.video}" type="video/webm"></video>`;
+    }
+    html += `<div class="onb-dots">${s.dots.map(a => `<span class="onb-dot${a ? ' active' : ''}"></span>`).join('')}</div>`;
+    if (i < steps.length - 1) {
+      html += `<button class="onb-btn onb-btn-next" id="onbNext">\u6B21\u3078 \u2192</button>`;
+    } else {
+      html += `<button class="onb-btn onb-btn-next" id="onbClose">\u306F\u3058\u3081\u308B\uFF01</button>`;
+    }
+    html += `<br><button class="onb-btn onb-btn-done" id="onbDismiss">\u3082\u3046\u8868\u793A\u3057\u306A\u3044</button>`;
+    card.innerHTML = html;
+
+    const next = document.getElementById('onbNext');
+    if (next) next.addEventListener('click', () => { current++; renderStep(current); });
+    const close = document.getElementById('onbClose');
+    if (close) close.addEventListener('click', dismiss);
+    document.getElementById('onbDismiss').addEventListener('click', dismiss);
+  }
+
+  function dismiss() {
+    localStorage.setItem('onboarding_done', '1');
+    overlay.classList.remove('show');
+  }
+
+  overlay.classList.add('show');
+  renderStep(0);
+})();
+</script>
 
 <script>
 // Theme
