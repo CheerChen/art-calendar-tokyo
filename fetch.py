@@ -47,11 +47,18 @@ def content_hash(text: str) -> str:
 
 # --- HTTP ---
 
-def fetch_page(url: str) -> str:
-    resp = requests.get(url, headers=HEADERS, timeout=30)
-    resp.raise_for_status()
-    resp.encoding = resp.apparent_encoding
-    return resp.text
+def fetch_page(url: str, retries: int = 3) -> str:
+    import time
+    for attempt in range(retries):
+        resp = requests.get(url, headers=HEADERS, timeout=30)
+        if resp.status_code == 403 and attempt < retries - 1:
+            wait = (attempt + 1) * 5
+            print(f" [403 retry {attempt + 1}/{retries}, wait {wait}s]", end="", flush=True)
+            time.sleep(wait)
+            continue
+        resp.raise_for_status()
+        resp.encoding = resp.apparent_encoding
+        return resp.text
 
 
 def clean_html(html: str) -> str | None:
