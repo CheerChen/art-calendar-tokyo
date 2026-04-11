@@ -42,8 +42,6 @@ def process_source(client, src, cache, detail_cache, run_dir):
         print("no content extracted, skipping")
         return None
 
-    save_file(run_dir / f"{slug}.txt", text)
-
     # --- For parser sources, always parse first to compute LLM input ---
     is_parser = "parser" in src
     parsed_events = None
@@ -60,6 +58,8 @@ def process_source(client, src, cache, detail_cache, run_dir):
         llm_input = text
         h = content_hash(llm_input)
         print(f"  {len(llm_input)} chars")
+
+    save_file(run_dir / f"{slug}.txt", llm_input)
 
     # --- Check cache ---
     cached = cache.get(name)

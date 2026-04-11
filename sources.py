@@ -116,7 +116,7 @@ Exclude any online-only events (オンライン, ウェビナー, Zoom, 配信).
 常設展など常時開催の展示は除外する。ただしコレクション展は含めてよい。
 明確な開催期間（start_date と end_date）がないイベント（毎月開催、随時開催、通年開催など）は除外する。
 
-Today's date is {today}. Only include events that ended within the last 3 days or have not ended yet (end_date >= today - 3 days). If there is no end_date, include if start_date >= today - 3 days. Exclude events that ended more than 3 days ago.
+Today's date is {today}. Include ALL current and upcoming/future events. Only exclude events that ended more than 3 days ago (end_date < today - 3 days). Events starting in the future MUST be included.
 
 For each event, return:
 - title (string): event name

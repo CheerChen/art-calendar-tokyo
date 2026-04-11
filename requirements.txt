@@ -1,4 +1,4 @@
 requests
 trafilatura
 beautifulsoup4
-anthropic
+openai

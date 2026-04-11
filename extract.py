@@ -3,8 +3,9 @@ import json
 import os
 import re
 from datetime import datetime, timezone
+from pathlib import Path
 
-import anthropic
+from openai import OpenAI
 
 from sources import ENRICH_PROMPT_BASIC, ENRICH_PROMPT_DETAIL, SYSTEM_PROMPT_TEMPLATE
 
@@ -44,26 +45,40 @@ def _clean_anomalous_unicode(events: list) -> list:
     return events
 
 
-def create_client() -> anthropic.Anthropic:
-    api_key = os.environ.get("MINIMAX_API_KEY")
+def _load_env():
+    """Load .env file if present."""
+    env_path = Path(__file__).parent / ".env"
+    if env_path.exists():
+        for line in env_path.read_text().splitlines():
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                key, val = line.split("=", 1)
+                os.environ.setdefault(key.strip(), val.strip())
+
+
+def create_client() -> OpenAI:
+    _load_env()
+    api_key = os.environ.get("DASHSCOPE_API_KEY")
     if not api_key:
-        raise RuntimeError("Set MINIMAX_API_KEY environment variable")
-    return anthropic.Anthropic(
+        raise RuntimeError("Set DASHSCOPE_API_KEY in .env or environment")
+    return OpenAI(
         api_key=api_key,
-        base_url="https://api.minimaxi.com/anthropic",
+        base_url="https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
     )
 
 
-def _call_llm(client: anthropic.Anthropic, system_prompt: str, user_msg: str) -> list:
+def _call_llm(client: OpenAI, system_prompt: str, user_msg: str) -> list:
     """Call LLM and parse JSON array response."""
-    resp = client.messages.create(
-        model="MiniMax-M2.7",
+    resp = client.chat.completions.create(
+        model="qwen3-max",
         max_tokens=16384,
-        system=system_prompt,
-        messages=[{"role": "user", "content": user_msg}],
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_msg},
+        ],
         temperature=0.1,
     )
-    raw = next(b.text for b in resp.content if b.type == "text").strip()
+    raw = resp.choices[0].message.content.strip()
 
     cleaned = re.sub(r"^```(?:json)?\s*", "", raw)
     cleaned = re.sub(r"\s*```$", "", cleaned).strip()
@@ -82,31 +97,36 @@ def _call_llm(client: anthropic.Anthropic, system_prompt: str, user_msg: str) ->
         return []
 
 
-def _call_llm_with_unicode_check(client: anthropic.Anthropic, system_prompt: str, user_msg: str) -> list:
+def _call_llm_with_unicode_check(client: OpenAI, system_prompt: str, user_msg: str) -> list:
     """Call LLM, check for anomalous unicode, retry if needed, clean as fallback."""
-    events = _call_llm(client, system_prompt, user_msg)
+    first_result = _call_llm(client, system_prompt, user_msg)
+
+    warnings = _has_anomalous_unicode(first_result)
+    if not warnings:
+        return first_result
+
+    for w in warnings:
+        print(w)
 
     for attempt in range(MAX_UNICODE_RETRIES):
-        warnings = _has_anomalous_unicode(events)
-        if not warnings:
-            return events
-        for w in warnings:
-            print(w)
         print(f"  [RETRY {attempt + 1}/{MAX_UNICODE_RETRIES}] unicode anomaly detected", flush=True)
-        events = _call_llm(client, system_prompt, user_msg)
-
-    # Final check — clean as fallback
-    warnings = _has_anomalous_unicode(events)
-    if warnings:
-        for w in warnings:
+        retry_result = _call_llm(client, system_prompt, user_msg)
+        if not retry_result:
+            # Retry returned empty/unparseable — fall through to clean first_result
+            break
+        retry_warnings = _has_anomalous_unicode(retry_result)
+        if not retry_warnings:
+            return retry_result
+        for w in retry_warnings:
             print(w)
-        print(f"  [CLEAN] removing anomalous characters", flush=True)
-        events = _clean_anomalous_unicode(events)
 
-    return events
+    # All retries failed or had issues — clean the best result we have
+    best = first_result
+    print(f"  [CLEAN] removing anomalous characters from first result", flush=True)
+    return _clean_anomalous_unicode(best)
 
 
-def extract_events(client: anthropic.Anthropic, source_name: str, source_url: str, text: str) -> list:
+def extract_events(client: OpenAI, source_name: str, source_url: str, text: str) -> list:
     """Extract events from page text via LLM. Retries once if 0 events but content is long enough."""
     system = SYSTEM_PROMPT_TEMPLATE.format(today=datetime.now(timezone.utc).strftime("%Y-%m-%d"))
     user_msg = f"Source: {source_name}\nURL: {source_url}\n\nPage content:\n{text}"
@@ -136,7 +156,7 @@ def build_enrich_input(events: list, detail_texts: dict | None = None) -> tuple[
         return "basic", json.dumps(items, ensure_ascii=False)
 
 
-def enrich_events(client: anthropic.Anthropic, events: list, detail_texts: dict | None = None, detail_cache: dict | None = None) -> list:
+def enrich_events(client: OpenAI, events: list, detail_texts: dict | None = None, detail_cache: dict | None = None) -> list:
     """Enrich events with summary/recommendation via LLM."""
     if not events:
         return events

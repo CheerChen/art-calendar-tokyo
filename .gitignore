@@ -2,3 +2,4 @@ output/2*
 __pycache__/
 .uv/
 .DS_Store
+.env

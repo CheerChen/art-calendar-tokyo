@@ -18,7 +18,7 @@ jobs:
 
       - name: Run scraper
         env:
-          MINIMAX_API_KEY: ${{ secrets.MINIMAX_API_KEY }}
+          DASHSCOPE_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
         run: uv run --with-requirements requirements.txt scraper.py
 
       - name: Commit caches and result
