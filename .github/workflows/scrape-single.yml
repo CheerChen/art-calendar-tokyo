@@ -1,0 +1,63 @@
+name: Scrape Single Source & Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      source:
+        description: 'Source to scrape'
+        required: true
+        type: choice
+        options:
+          - 武蔵野美術大学
+          - 多摩美術大学
+          - 東京都現代美術館
+          - 国立新美術館
+          - 国立西洋美術館
+          - 上野の森美術館
+          - 東京都美術館
+          - アーティゾン美術館
+          - 森美術館
+          - 21_21 DESIGN SIGHT
+          - 東京国立近代美術館
+          - 寺田倉庫
+          - 横浜美術館
+          - 東京オペラシティアートギャラリー
+          - SOMPO美術館
+          - TOKYO NODE
+
+permissions:
+  contents: write
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v4
+
+      - name: Run single scraper
+        env:
+          DASHSCOPE_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
+        run: uv run --with-requirements requirements.txt scraper_single.py "${{ github.event.inputs.source }}"
+
+      - name: Commit caches and result
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add output/cache.json output/detail_cache.json result.json
+          git diff --cached --quiet || git commit -m "update ${{ github.event.inputs.source }} $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          git push
+
+      - name: Prepare deploy
+        run: |
+          mkdir -p dist
+          cp viewer.html dist/index.html
+          cp result.json dist/
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: e77f59c260bfe0ae47e1e998e989eea0
+          command: pages deploy dist --project-name=art-calendar-tokyo
