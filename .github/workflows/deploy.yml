@@ -15,6 +15,7 @@ jobs:
           cp viewer.html dist/index.html
           cp result.json dist/
           cp -f *.webm dist/ 2>/dev/null || true
+          cp -f ogp.png dist/ 2>/dev/null || true
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3

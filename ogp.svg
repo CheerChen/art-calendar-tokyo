@@ -1,0 +1,51 @@
+<svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="630" fill="#1a1a1a"/>
+
+  <!-- Color bands from SOURCE_PALETTE (16 sources) -->
+  <g transform="translate(0, 480)">
+    <rect x="0" y="0" width="75" height="8" fill="#4a90d9"/>
+    <rect x="75" y="0" width="75" height="8" fill="#d94452"/>
+    <rect x="150" y="0" width="75" height="8" fill="#27ae60"/>
+    <rect x="225" y="0" width="75" height="8" fill="#8e44ad"/>
+    <rect x="300" y="0" width="75" height="8" fill="#e67e22"/>
+    <rect x="375" y="0" width="75" height="8" fill="#16a085"/>
+    <rect x="450" y="0" width="75" height="8" fill="#c0392b"/>
+    <rect x="525" y="0" width="75" height="8" fill="#2980b9"/>
+    <rect x="600" y="0" width="75" height="8" fill="#d4ac0d"/>
+    <rect x="675" y="0" width="75" height="8" fill="#7f8c8d"/>
+    <rect x="750" y="0" width="75" height="8" fill="#e84393"/>
+    <rect x="825" y="0" width="75" height="8" fill="#6c5ce7"/>
+    <rect x="900" y="0" width="75" height="8" fill="#00b894"/>
+    <rect x="975" y="0" width="75" height="8" fill="#2d3436"/>
+    <rect x="1050" y="0" width="75" height="8" fill="#fd79a8"/>
+    <rect x="1125" y="0" width="75" height="8" fill="#a29bfe"/>
+  </g>
+
+  <!-- Decorative Gantt-like bars -->
+  <g opacity="0.15">
+    <rect x="80" y="340" width="320" height="14" rx="3" fill="#4a90d9"/>
+    <rect x="200" y="362" width="480" height="14" rx="3" fill="#d94452"/>
+    <rect x="120" y="384" width="260" height="14" rx="3" fill="#27ae60"/>
+    <rect x="400" y="340" width="380" height="14" rx="3" fill="#8e44ad"/>
+    <rect x="500" y="362" width="300" height="14" rx="3" fill="#e67e22"/>
+    <rect x="300" y="384" width="520" height="14" rx="3" fill="#16a085"/>
+    <rect x="700" y="406" width="350" height="14" rx="3" fill="#c0392b"/>
+    <rect x="80" y="406" width="200" height="14" rx="3" fill="#2980b9"/>
+    <rect x="850" y="340" width="270" height="14" rx="3" fill="#d4ac0d"/>
+    <rect x="600" y="428" width="440" height="14" rx="3" fill="#e84393"/>
+    <rect x="80" y="428" width="300" height="14" rx="3" fill="#6c5ce7"/>
+    <rect x="400" y="450" width="350" height="14" rx="3" fill="#00b894"/>
+  </g>
+
+  <!-- Title -->
+  <text x="600" y="200" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="64" font-weight="bold" fill="#ffffff" letter-spacing="3">Tokyo Art Calendar</text>
+
+  <!-- Subtitle -->
+  <text x="600" y="270" text-anchor="middle" font-family="'Hiragino Sans', 'Noto Sans JP', sans-serif" font-size="28" fill="#999999" letter-spacing="2">東京 展覧会カレンダー</text>
+
+  <!-- Tagline -->
+  <text x="600" y="530" text-anchor="middle" font-family="'Hiragino Sans', 'Noto Sans JP', sans-serif" font-size="18" fill="#666666">Tokyo museums &amp; galleries ・ updated daily</text>
+
+  <!-- Divider line -->
+  <line x1="480" y1="295" x2="720" y2="295" stroke="#333333" stroke-width="1"/>
+</svg>

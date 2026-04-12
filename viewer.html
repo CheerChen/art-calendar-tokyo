@@ -6,18 +6,35 @@
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-71Q7HGYEJG"></script>
 <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-71Q7HGYEJG');</script>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%231a1a1a'/><text x='16' y='23' text-anchor='middle' font-family='Georgia,serif' font-size='20' font-weight='bold' fill='%23fff'>A</text></svg>">
-<title>Tokyo Art Calendar</title>
+<title>Tokyo Art Calendar - 東京展覧会カレンダー</title>
+<meta name="description" content="東京の美術館・ギャラリーの展覧会スケジュールを一覧で確認。毎日自動更新、ガントチャートで会期が一目瞭然。">
+<link rel="canonical" href="https://art-calendar-tokyo.pages.dev/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Tokyo Art Calendar - 東京展覧会カレンダー">
+<meta property="og:description" content="東京の美術館・ギャラリーの展覧会スケジュールを一覧で確認。毎日自動更新。">
+<meta property="og:image" content="https://art-calendar-tokyo.pages.dev/ogp.png">
+<meta property="og:url" content="https://art-calendar-tokyo.pages.dev/">
+<meta property="og:locale" content="ja_JP">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Tokyo Art Calendar - 東京展覧会カレンダー">
+<meta name="twitter:description" content="東京の美術館・ギャラリーの展覧会スケジュールを一覧で確認。毎日自動更新。">
+<meta name="twitter:image" content="https://art-calendar-tokyo.pages.dev/ogp.png">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: -apple-system, 'Hiragino Sans', sans-serif; background: #f5f5f0; color: #333; line-height: 1.6; }
 
-  .header { background: #1a1a1a; color: #fff; padding: 16px 32px; display: flex; align-items: center; justify-content: space-between; }
+  .header { background: #1a1a1a; color: #fff; padding: 16px 32px; display: flex; align-items: center; justify-content: space-between; position: relative; }
   .header-left {}
+  .header-right { display: flex; align-items: center; position: relative; }
   .header h1 { font-size: 18px; font-weight: 500; letter-spacing: 0.05em; }
   .header .meta { font-size: 13px; color: #999; margin-top: 2px; }
-  .theme-toggle { background: none; border: none; cursor: pointer; width: 28px; height: 28px; padding: 0; display: flex; align-items: center; justify-content: center; transition: transform 0.4s ease; }
-  .theme-toggle svg { width: 22px; height: 22px; }
-  [data-theme="dark"] .theme-toggle { transform: rotate(180deg); }
+  .header-btn { background: none; border: none; cursor: pointer; width: 28px; height: 28px; padding: 0; display: flex; align-items: center; justify-content: center; transition: transform 0.4s ease; color: #fff; }
+  .header-btn svg { width: 22px; height: 22px; }
+  .header-btn:active { transform: scale(0.85); }
+  #themeToggle { transition: transform 0.4s ease; }
+  [data-theme="dark"] #themeToggle { transform: rotate(180deg); }
+  #shareBtn { transition: transform 0.3s ease; margin-right: 12px; }
+  #shareBtn.shared { transform: rotate(360deg); }
 
   .tabs { display: flex; background: #fff; border-bottom: 2px solid #e0e0e0; padding: 0 32px; }
   .tab { padding: 10px 20px; font-size: 14px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; color: #888; }
@@ -147,6 +164,11 @@
   [data-theme="dark"] .event-card .card-image { background: #333; }
   [data-theme="dark"] .event-card .card-meta { color: #777; }
 
+  /* Share toast */
+  .share-toast { position: absolute; top: 100%; right: 0; background: #fff; color: #333; padding: 6px 14px; border-radius: 6px; font-size: 12px; opacity: 0; transition: opacity 0.3s; pointer-events: none; margin-top: 4px; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+  .share-toast.show { opacity: 1; }
+  [data-theme="dark"] .share-toast { background: #333; color: #e0e0e0; }
+
   /* Onboarding */
   .onboarding-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 2000; justify-content: center; align-items: center; backdrop-filter: blur(2px); }
   .onboarding-overlay.show { display: flex; }
@@ -180,7 +202,11 @@
     <h1>Tokyo Art Calendar</h1>
     <div class="meta" id="meta">Loading...</div>
   </div>
-  <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#fff"/><path d="M12 2 A10 10 0 0 1 12 22 Z" fill="#1a1a1a"/></svg></button>
+  <div class="header-right">
+    <button class="header-btn" id="shareBtn" aria-label="Share"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg></button>
+    <button class="header-btn" id="themeToggle" aria-label="Toggle theme"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#fff"/><path d="M12 2 A10 10 0 0 1 12 22 Z" fill="#1a1a1a"/></svg></button>
+    <div class="share-toast" id="shareToast"></div>
+  </div>
 </div>
 
 <div class="tabs">
@@ -212,6 +238,7 @@
 </div>
 
 <div class="tooltip" id="tooltip"></div>
+
 
 <div class="onboarding-overlay" id="onboarding">
   <div class="onboarding-card" id="onboardingCard"></div>
@@ -685,6 +712,27 @@ function esc(s) {
   if (!s) return '';
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+
+// Share
+document.getElementById('shareBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('shareBtn');
+  const shareData = {
+    title: 'Tokyo Art Calendar',
+    text: '\u6771\u4EAC\u306E\u5C55\u89A7\u4F1A\u30B9\u30B1\u30B8\u30E5\u30FC\u30EB\u3092\u4E00\u89A7\u3067\u78BA\u8A8D',
+    url: location.href,
+  };
+  btn.classList.add('shared');
+  setTimeout(() => btn.classList.remove('shared'), 400);
+  if (navigator.share) {
+    try { await navigator.share(shareData); } catch {}
+  } else {
+    await navigator.clipboard.writeText(location.href);
+    const toast = document.getElementById('shareToast');
+    toast.textContent = 'URL\u3092\u30B3\u30D4\u30FC\u3057\u307E\u3057\u305F';
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2000);
+  }
+});
 </script>
 </body>
 </html>
