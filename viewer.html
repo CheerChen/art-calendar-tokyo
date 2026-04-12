@@ -3,6 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-71Q7HGYEJG"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-71Q7HGYEJG');</script>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%231a1a1a'/><text x='16' y='23' text-anchor='middle' font-family='Georgia,serif' font-size='20' font-weight='bold' fill='%23fff'>A</text></svg>">
 <title>Tokyo Art Calendar</title>
 <style>
@@ -196,12 +198,6 @@
   <select id="filterSource">
     <option value="all">All Sources</option>
   </select>
-  <label id="sortLabel">Sort:</label>
-  <select id="sortBy">
-    <option value="date">By Date</option>
-    <option value="source">By Source</option>
-    <option value="recommendation">By Recommendation</option>
-  </select>
   <div class="count" id="count"></div>
 </div>
 
@@ -347,8 +343,6 @@ document.querySelectorAll('.tab').forEach(tab => {
     currentView = tab.dataset.view;
     document.getElementById('timelinePanel').classList.toggle('active', currentView === 'timeline');
     document.getElementById('recentlyPanel').classList.toggle('active', currentView === 'recently');
-    document.getElementById('sortBy').style.display = currentView === 'recently' ? 'none' : '';
-    document.getElementById('sortLabel').style.display = currentView === 'recently' ? 'none' : '';
     tooltip.style.display = 'none';
     render();
   });
@@ -374,7 +368,6 @@ function init() {
 
   document.getElementById('filterRec').onchange = render;
   document.getElementById('filterSource').onchange = render;
-  document.getElementById('sortBy').onchange = render;
   render();
 }
 
@@ -562,23 +555,10 @@ function renderGantt(events) {
     d.setDate(d.getDate() + 1);
   }
 
-  // Sort
+  // Sort by date
   const recOrder = { must_see: 0, recommended: 1, normal: 2 };
-  const sortBy = document.getElementById('sortBy').value;
-  const sourceOrder = {};
-  DATA.sources.forEach((s, i) => sourceOrder[s.name] = i);
-
-  if (sortBy === 'source') {
-    events.sort((a, b) => (sourceOrder[a._source] ?? 99) - (sourceOrder[b._source] ?? 99)
-      || (recOrder[a.recommendation] ?? 2) - (recOrder[b.recommendation] ?? 2)
-      || (a.start_date || '').localeCompare(b.start_date || ''));
-  } else if (sortBy === 'date') {
-    events.sort((a, b) => (a.start_date || '9999').localeCompare(b.start_date || '9999')
-      || (recOrder[a.recommendation] ?? 2) - (recOrder[b.recommendation] ?? 2));
-  } else {
-    events.sort((a, b) => (recOrder[a.recommendation] ?? 2) - (recOrder[b.recommendation] ?? 2)
-      || (a.start_date || '').localeCompare(b.start_date || ''));
-  }
+  events.sort((a, b) => (a.start_date || '9999').localeCompare(b.start_date || '9999')
+    || (recOrder[a.recommendation] ?? 2) - (recOrder[b.recommendation] ?? 2));
 
   const colW = 18; // px per day column
   const rowH = 32; // px per event row

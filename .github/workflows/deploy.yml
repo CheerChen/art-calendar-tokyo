@@ -1,0 +1,24 @@
+name: Deploy Only
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare deploy
+        run: |
+          mkdir -p dist
+          cp viewer.html dist/index.html
+          cp result.json dist/
+          cp -f *.webm dist/ 2>/dev/null || true
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: e77f59c260bfe0ae47e1e998e989eea0
+          command: pages deploy dist --project-name=art-calendar-tokyo
