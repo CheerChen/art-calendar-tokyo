@@ -8,7 +8,7 @@ on:
         required: true
         type: choice
         options:
-          - 武蔵野美術大学
+          - 東京藝術大学大学美術館
           - 多摩美術大学
           - 東京都現代美術館
           - 国立新美術館

@@ -3,8 +3,10 @@ import json
 
 SOURCES = [
     {
-        "name": "武蔵野美術大学",
-        "url": "https://oc.musabi.ac.jp/",
+        "name": "東京藝術大学大学美術館",
+        "url": "https://museum.geidai.ac.jp/exhibit/",
+        "list_selector": "div#right section.exhibit li",
+        "link_selector": "a",
     },
     {
         "name": "多摩美術大学",
