@@ -55,7 +55,17 @@
   .legend-rec-dot { width: 8px; height: 8px; border-radius: 50%; border: 2px solid; flex-shrink: 0; }
 
   /* Gantt timeline */
+  .gantt-wrapper { position: relative; }
   .gantt-container { overflow-x: auto; overflow-y: auto; max-height: calc(100vh - 260px); }
+  .gantt-zoom { position: absolute; bottom: 16px; right: 16px; z-index: 20; display: flex; flex-direction: column; gap: 2px; }
+  .gantt-zoom button { width: 32px; height: 32px; border: none; background: #1a1a1a; color: #fff; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s; }
+  .gantt-zoom button:first-child { border-radius: 6px 6px 0 0; }
+  .gantt-zoom button:last-child { border-radius: 0 0 6px 6px; }
+  .gantt-zoom button:hover { background: #333; }
+  .gantt-zoom button:disabled { background: #999; cursor: default; }
+  [data-theme="dark"] .gantt-zoom button { background: #444; }
+  [data-theme="dark"] .gantt-zoom button:hover { background: #555; }
+  [data-theme="dark"] .gantt-zoom button:disabled { background: #333; color: #666; }
   .gantt { display: grid; min-width: 100%; position: relative; }
 
   .gantt-month-cell { background: #eee; text-align: center; font-size: 13px; font-weight: 600; padding: 6px 0; border-right: 1px solid #ddd; border-bottom: 1px solid #ccc; position: sticky; top: 0; z-index: 11; }
@@ -230,7 +240,13 @@
 <div class="legend" id="legend"></div>
 
 <div class="view-panel" id="timelinePanel" style="padding: 24px 32px;">
-  <div class="gantt-container" id="ganttContainer"></div>
+  <div class="gantt-wrapper">
+    <div class="gantt-container" id="ganttContainer"></div>
+    <div class="gantt-zoom">
+      <button id="zoomIn">+</button>
+      <button id="zoomOut">&minus;</button>
+    </div>
+  </div>
 </div>
 
 <div class="view-panel active" id="recentlyPanel">
@@ -333,6 +349,10 @@ let DATA = null;
 let allEvents = [];
 let sourceColors = {};
 let currentView = 'recently';
+
+// Zoom levels: colW values
+const ZOOM_LEVELS = [8, 12, 18, 27, 40];
+let zoomIndex = 2; // default = 18px
 
 // 14 distinct, accessible hues for sources
 const SOURCE_PALETTE = [
@@ -594,7 +614,7 @@ function renderGantt(events) {
   events.sort((a, b) => (a.start_date || '9999').localeCompare(b.start_date || '9999')
     || (recOrder[a.recommendation] ?? 2) - (recOrder[b.recommendation] ?? 2));
 
-  const colW = 18; // px per day column
+  const colW = ZOOM_LEVELS[zoomIndex];
   const rowH = 32; // px per event row
   const headerH = 60; // month + day header height
   const totalW = days.length * colW;
@@ -719,6 +739,28 @@ function esc(s) {
   if (!s) return '';
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+
+// Zoom
+function updateZoomButtons() {
+  document.getElementById('zoomIn').disabled = zoomIndex >= ZOOM_LEVELS.length - 1;
+  document.getElementById('zoomOut').disabled = zoomIndex <= 0;
+}
+function handleZoom(delta) {
+  const container = document.getElementById('ganttContainer');
+  const oldColW = ZOOM_LEVELS[zoomIndex];
+  const centerX = container.scrollLeft + container.clientWidth / 2;
+  const centerDay = centerX / oldColW;
+
+  zoomIndex = Math.max(0, Math.min(ZOOM_LEVELS.length - 1, zoomIndex + delta));
+  updateZoomButtons();
+  render();
+
+  const newColW = ZOOM_LEVELS[zoomIndex];
+  container.scrollLeft = centerDay * newColW - container.clientWidth / 2;
+}
+document.getElementById('zoomIn').addEventListener('click', () => handleZoom(1));
+document.getElementById('zoomOut').addEventListener('click', () => handleZoom(-1));
+updateZoomButtons();
 
 // Share
 document.getElementById('shareBtn').addEventListener('click', async () => {
