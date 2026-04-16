@@ -234,12 +234,11 @@
   <select id="filterSource">
     <option value="all">All Sources</option>
   </select>
-  <div class="count" id="count"></div>
 </div>
 
 <div class="legend" id="legend"></div>
 
-<div class="view-panel" id="timelinePanel" style="padding: 24px 32px;">
+<div class="view-panel" id="timelinePanel">
   <div class="gantt-wrapper">
     <div class="gantt-container" id="ganttContainer"></div>
     <div class="gantt-zoom">
@@ -438,7 +437,6 @@ function getFiltered() {
 
 function render() {
   const events = getFiltered();
-  document.getElementById('count').textContent = `${events.length} events`;
   if (currentView === 'timeline') {
     renderGantt(events);
   } else {
