@@ -33,7 +33,7 @@ def process_source(client, src, cache, detail_cache, run_dir):
         print(f"FETCH ERROR: {e}", end="")
         cached = cache.get(name)
         if cached and cached.get("events"):
-            print(f" -> using cached {len(cached['events'])} events")
+            print(f" -> fetch failed, using cached {len(cached['events'])} events (LLM skipped)")
             return cached["events"], 0
         print(" -> no cache available, skipping")
         return None
@@ -49,11 +49,11 @@ def process_source(client, src, cache, detail_cache, run_dir):
         parser_fn = PARSERS[src["parser"]]
         parsed_events = parser_fn(text, today)
 
-    # --- Compute LLM input and hash ---
+    # --- Build the content we hash to detect changes (NOT yet sent to the LLM) ---
     if is_parser:
         _, llm_input = build_enrich_input(parsed_events)
         h = content_hash(llm_input)
-        print(f"  {len(parsed_events)} parsed, {len(llm_input)} chars (LLM input)")
+        print(f"  {len(parsed_events)} parsed, {len(llm_input)} chars")
     else:
         llm_input = text
         h = content_hash(llm_input)
@@ -91,18 +91,18 @@ def process_source(client, src, cache, detail_cache, run_dir):
                         detail_texts[u] = dt
                 if is_parser:
                     events = parsed_events
-                print(f" enriching...", end="", flush=True)
+                print(f" LLM enrich...", end="", flush=True)
                 events = enrich_events(client, events, detail_texts, detail_cache)
-                print(f" done")
+                print(f" done ({len(events)} events)")
                 cache[name] = {
                     "content_hash": h,
                     "fetched_at": datetime.now(timezone.utc).isoformat(),
                     "events": events,
                 }
             else:
-                print(f"  -> cache hit ({cached['fetched_at']})")
+                print(f"  -> cache hit, LLM skipped (cached {cached['fetched_at']})")
         else:
-            print(f"  -> cache hit ({cached['fetched_at']})")
+            print(f"  -> cache hit, LLM skipped (cached {cached['fetched_at']})")
         return events, len(llm_input)
 
     # --- Extract / Enrich ---
@@ -127,12 +127,12 @@ def process_source(client, src, cache, detail_cache, run_dir):
                         fetched += 1
             print(f"  details: {fetched} fetched / {cached_count} cached,", end="", flush=True)
 
-        print(f" enriching...", end="", flush=True)
+        print(f" LLM enrich...", end="", flush=True)
         events = enrich_events(client, events, detail_texts, detail_cache)
-        print(f" done")
+        print(f" done ({len(events)} events)")
     else:
         events = extract_events(client, name, src["url"], text)
-        print(f"  -> {len(events)} events extracted", end="", flush=True)
+        print(f"  -> LLM extract: {len(events)} events", end="", flush=True)
 
         selector = src.get("detail_selector")
         if selector and events:
@@ -145,7 +145,7 @@ def process_source(client, src, cache, detail_cache, run_dir):
                 if dt:
                     detail_texts[url] = dt
             if detail_texts:
-                print(f", {len(detail_texts)} details fetched, enriching...", end="", flush=True)
+                print(f", {len(detail_texts)} details fetched, LLM enrich...", end="", flush=True)
                 events = enrich_events(client, events, detail_texts, detail_cache)
 
         print(f" done")
