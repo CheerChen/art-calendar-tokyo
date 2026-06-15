@@ -3,3 +3,4 @@ __pycache__/
 .uv/
 .DS_Store
 .env
+eval_output/

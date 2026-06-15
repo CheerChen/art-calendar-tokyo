@@ -39,6 +39,9 @@ jobs:
       - name: Run single scraper
         env:
           DASHSCOPE_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
+          LLM_MODEL: ${{ vars.LLM_MODEL }}
+          LLM_BASE_URL: ${{ vars.LLM_BASE_URL }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
         run: uv run --with-requirements requirements.txt scraper_single.py "${{ github.event.inputs.source }}"
 
       - name: Commit caches and result

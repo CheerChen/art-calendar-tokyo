@@ -56,27 +56,61 @@ def _load_env():
                 os.environ.setdefault(key.strip(), val.strip())
 
 
+# Backend defaults. Every value here is overridable via env so the model can be
+# swapped (or tuned) from repo/CI variables WITHOUT editing code. See .env.example.
+# Defaults point at Qwen on DashScope (OpenAI-compatible).
+DEFAULT_MODEL = "qwen3.7-max"
+DEFAULT_BASE_URL = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
+DEFAULT_MAX_TOKENS = 16384
+DEFAULT_TEMPERATURE = 0.1
+DEFAULT_TIMEOUT = 300.0
+
+
+def _env(name: str, default=None):
+    """Read an env var, treating an empty string (e.g. an unset GitHub Actions
+    `vars.X`, which arrives as "") the same as unset."""
+    val = os.environ.get(name)
+    return val if val not in (None, "") else default
+
+
 def create_client() -> OpenAI:
     _load_env()
-    api_key = os.environ.get("DASHSCOPE_API_KEY")
+    base_url = _env("LLM_BASE_URL", DEFAULT_BASE_URL)
+    api_key = _env("LLM_API_KEY") or _env("DASHSCOPE_API_KEY")
     if not api_key:
-        raise RuntimeError("Set DASHSCOPE_API_KEY in .env or environment")
-    return OpenAI(
-        api_key=api_key,
-        base_url="https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
-    )
+        raise RuntimeError("Set LLM_API_KEY (or DASHSCOPE_API_KEY) in .env or environment")
+    timeout = float(_env("LLM_TIMEOUT", DEFAULT_TIMEOUT))
+    return OpenAI(api_key=api_key, base_url=base_url, timeout=timeout)
+
+
+def get_model() -> str:
+    return _env("LLM_MODEL", DEFAULT_MODEL)
+
+
+def _thinking_off_body(base_url: str) -> dict:
+    """Disable reasoning/thinking mode for structured extraction (default ON
+    makes non-streaming JSON calls slow/hang). The param name is platform-
+    specific, NOT model-specific: DashScope uses enable_thinking for whatever
+    it hosts (qwen AND glm); GLM-native endpoints use thinking.type."""
+    b = (base_url or "").lower()
+    if "dashscope" in b:
+        return {"enable_thinking": False}
+    if "bigmodel" in b or "z.ai" in b:
+        return {"thinking": {"type": "disabled"}}
+    return {}
 
 
 def _call_llm(client: OpenAI, system_prompt: str, user_msg: str) -> list:
     """Call LLM and parse JSON array response."""
     resp = client.chat.completions.create(
-        model="qwen3-max",
-        max_tokens=16384,
+        model=get_model(),
+        max_tokens=int(_env("LLM_MAX_TOKENS", DEFAULT_MAX_TOKENS)),
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_msg},
         ],
-        temperature=0.1,
+        temperature=float(_env("LLM_TEMPERATURE", DEFAULT_TEMPERATURE)),
+        extra_body=_thinking_off_body(str(client.base_url)),
     )
     raw = resp.choices[0].message.content.strip()
 
