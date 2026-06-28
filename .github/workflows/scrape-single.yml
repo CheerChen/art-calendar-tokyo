@@ -48,7 +48,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add output/cache.json output/detail_cache.json result.json
+          git add output/cache.json output/detail_cache.json result.json venues.json
           git diff --cached --quiet || git commit -m "update ${{ github.event.inputs.source }} $(date -u +%Y-%m-%dT%H:%M:%SZ)"
           git push
 
@@ -57,6 +57,7 @@ jobs:
           mkdir -p dist
           cp viewer.html dist/index.html
           cp result.json dist/
+          cp venues.json dist/
           cp -f *.webm dist/ 2>/dev/null || true
           cp -f ogp.png dist/ 2>/dev/null || true
 
