@@ -1405,20 +1405,15 @@ function renderGantt(events) {
     container.scrollLeft = Math.max(0, todayIdx * colW - container.clientWidth / 3);
   }
 
-  // Events — desktop: hover preview, click pins actions; mobile: tap shows tooltip, second tap opens URL.
+  // Events — desktop: hover preview, click pins actions; mobile: tap pins the
+  // same action tooltip. Actions are always explicit buttons.
   const isMobile = 'ontouchstart' in window;
-  let activeBarIdx = -1;
   container.querySelectorAll('.gantt-bar').forEach(bar => {
     const idx = parseInt(bar.dataset.idx);
     if (isMobile) {
       bar.addEventListener('click', e => {
         e.stopPropagation();
-        if (activeBarIdx === idx) {
-          if (events[idx].url) window.open(events[idx].url, '_blank');
-        } else {
-          activeBarIdx = idx;
-          showTooltip(e, events[idx]);
-        }
+        showTooltip(e, events[idx], true);
       });
     } else {
       bar.addEventListener('mouseenter', e => {
@@ -1433,9 +1428,6 @@ function renderGantt(events) {
       });
     }
   });
-  if (isMobile) {
-    document.addEventListener('click', () => { tooltip.style.display = 'none'; activeBarIdx = -1; });
-  }
 }
 
 
