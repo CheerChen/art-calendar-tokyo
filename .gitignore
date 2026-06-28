@@ -1,7 +1,11 @@
 output/2*
+output/cache.json
+output/detail_cache.json
 output/geocode_cache.json
 __pycache__/
 .uv/
 .DS_Store
 .env
 eval_output/
+.wrangler/
+result.json

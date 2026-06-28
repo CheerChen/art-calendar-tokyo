@@ -534,11 +534,11 @@ function renderLegend() {
   });
 }
 
-fetch('./result.json').then(r => { if (r.ok) return r.json(); throw 'not found'; })
+fetch('/api/result.json').then(r => { if (r.ok) return r.json(); throw 'not found'; })
   .then(d => {
     DATA = d;
     // Load venues.json in parallel; non-fatal if missing (map tab degrades).
-    return fetch('./venues.json').then(r => r.ok ? r.json() : null).catch(() => null).then(v => { VENUES = v || {}; });
+    return fetch('/api/venues.json').then(r => r.ok ? r.json() : null).catch(() => null).then(v => { VENUES = v || {}; });
   })
   .then(() => init())
   .catch(() => { document.getElementById('meta').textContent = 'result.json not found'; });

@@ -1,0 +1,7 @@
+name = "art-calendar-tokyo"
+pages_build_output_dir = "./dist"
+compatibility_date = "2026-06-28"
+
+[[r2_buckets]]
+binding = "DATA_BUCKET"
+bucket_name = "art-calendar-data"

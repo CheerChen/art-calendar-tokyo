@@ -16,8 +16,7 @@ jobs:
         run: |
           mkdir -p dist
           cp viewer.html dist/index.html
-          cp result.json dist/
-          cp venues.json dist/
+          cp worker.js dist/_worker.js
           cp -f *.webm dist/ 2>/dev/null || true
           cp -f ogp.png dist/ 2>/dev/null || true
 
