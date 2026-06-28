@@ -19,6 +19,9 @@
 <meta name="twitter:title" content="Tokyo Art Calendar - 東京展覧会カレンダー">
 <meta name="twitter:description" content="東京の美術館・ギャラリーの展覧会スケジュールを一覧で確認。毎日自動更新。">
 <meta name="twitter:image" content="https://art-calendar-tokyo.pages.dev/ogp.png">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: -apple-system, 'Hiragino Sans', sans-serif; background: #f5f5f0; color: #333; line-height: 1.6; }
@@ -90,6 +93,7 @@
 
   /* Tooltip */
   .tooltip { display: none; position: fixed; background: #1a1a1a; color: #fff; padding: 14px 18px; border-radius: 8px; font-size: 13px; line-height: 1.7; max-width: 400px; z-index: 1000; pointer-events: none; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+  .tooltip.pinned { pointer-events: auto; z-index: 1200; }
   .tooltip .tt-title { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
   .tooltip .tt-venue { color: #aaa; font-size: 12px; }
   .tooltip .tt-badge { display: inline-block; font-size: 11px; padding: 1px 8px; border-radius: 8px; margin-top: 4px; }
@@ -99,6 +103,11 @@
   .tooltip .tt-info { margin-top: 8px; color: #ccc; font-size: 12px; }
   .tooltip .tt-info div { margin: 2px 0; }
   .tooltip .tt-summary { margin-top: 8px; color: #ddd; font-size: 12px; border-top: 1px solid #333; padding-top: 8px; }
+  .tooltip .tt-actions { display: flex; gap: 8px; margin-top: 12px; padding-top: 10px; border-top: 1px solid #333; }
+  .tooltip .tt-btn { flex: 1; border: none; border-radius: 6px; padding: 7px 10px; font-size: 12px; font-weight: 600; cursor: pointer; }
+  .tooltip .tt-btn-detail { background: #fff; color: #1a1a1a; }
+  .tooltip .tt-btn-nav { background: #2f6bff; color: #fff; }
+  .tooltip .tt-btn:disabled { background: #555; color: #aaa; cursor: default; }
 
   /* Monthly view */
   .monthly-container { padding: 24px 32px; overflow-y: auto; max-height: calc(100vh - 260px); }
@@ -116,6 +125,115 @@
   .event-card .card-rec { font-size: 10px; padding: 1px 6px; border-radius: 4px; font-weight: 600; flex-shrink: 0; }
   .card-rec.must_see { background: #e74c3c; color: #fff; }
   .card-rec.recommended { background: #f39c12; color: #fff; }
+
+  /* Map view */
+  #mapPanel { padding: 0; position: relative; }
+  #mapContainer { width: auto; height: calc(100vh - 220px); background: #e8e8e0; position: relative; }
+  .map-no-loc-notice { display: none; padding: 6px 32px; background: #fff3cd; color: #856404; font-size: 12px; border-bottom: 1px solid #eee; }
+  [data-theme="dark"] #mapContainer { background: #2a2a2a; }
+  [data-theme="dark"] .map-no-loc-notice { background: #3a3220; color: #e0c870; border-bottom-color: #444; }
+  .map-pin { background: none; border: none; }
+  .map-user-pin { background: none; border: none; }
+  .map-user-dot { width: 16px; height: 16px; border-radius: 50%; background: #2f6bff; border: 3px solid #fff; box-shadow: 0 0 0 2px rgba(47,107,255,0.4), 0 2px 6px rgba(0,0,0,0.3); }
+  .map-locate-btn { position: absolute; bottom: 24px; right: 16px; z-index: 1000; width: 40px; height: 40px; border: none; border-radius: 8px; background: #fff; color: #2f6bff; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); transition: background 0.15s, transform 0.15s; }
+  .map-locate-btn:hover { background: #f0f4ff; }
+  .map-locate-btn:active { transform: scale(0.9); }
+  .map-locate-btn.locating { animation: map-locate-spin 1s linear infinite; }
+  @keyframes map-locate-spin { to { transform: rotate(360deg); } }
+  [data-theme="dark"] .map-locate-btn { background: #333; color: #5b8cff; }
+  [data-theme="dark"] .map-locate-btn:hover { background: #444; }
+  .leaflet-popup-content { margin: 12px 14px; }
+  .leaflet-popup-content .mp-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; color: #1a1a1a; }
+  .leaflet-popup-content .mp-venue { color: #888; font-size: 12px; }
+  .leaflet-popup-content .mp-image { width: 100%; max-height: 160px; object-fit: cover; border-radius: 4px; margin-bottom: 6px; }
+  .leaflet-popup-content .mp-info { margin-top: 6px; color: #555; font-size: 12px; line-height: 1.6; }
+  .leaflet-popup-content .mp-summary { margin-top: 6px; color: #666; font-size: 12px; border-top: 1px solid #eee; padding-top: 6px; line-height: 1.6; }
+  .leaflet-popup-content .mp-badge { display: inline-block; font-size: 11px; padding: 1px 8px; border-radius: 8px; margin-top: 4px; }
+  .leaflet-popup-content .mp-badge.must_see { background: #e74c3c; color: #fff; }
+  .leaflet-popup-content .mp-badge.recommended { background: #f39c12; color: #fff; }
+  .leaflet-popup-content .mp-link { display: inline-block; margin-top: 8px; font-size: 12px; color: #2f6bff; text-decoration: none; }
+  .leaflet-popup-content .mp-link:hover { text-decoration: underline; }
+  .leaflet-popup-content .mp-nav-btn { display: block; width: 100%; margin-top: 10px; padding: 7px 10px; border: none; border-radius: 6px; background: #2f6bff; color: #fff; font-size: 12px; font-weight: 600; cursor: pointer; text-align: center; }
+  .leaflet-popup-content .mp-nav-btn:hover { background: #1a5ae0; }
+  .leaflet-popup-content .mp-nav-btn:disabled { background: #ccc; cursor: default; }
+  [data-theme="dark"] .leaflet-popup-content .mp-nav-btn { background: #5b8cff; }
+  [data-theme="dark"] .leaflet-popup-content .mp-nav-btn:hover { background: #4a7bef; }
+  [data-theme="dark"] .leaflet-popup-content .mp-nav-btn:disabled { background: #555; }
+  /* ---- Navigation panel (floating card over the map) ---- */
+  .nav-panel { display: none; position: absolute; top: 16px; left: 16px; width: 340px; max-height: calc(100% - 32px); background: #fff; z-index: 1100; flex-direction: column; box-shadow: 0 4px 20px rgba(0,0,0,0.18); border-radius: 12px; overflow-y: auto; overflow-x: hidden; }
+  #mapPanel.nav-active .nav-panel { display: flex; }
+  [data-theme="dark"] .nav-panel { background: #1e1e1e; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+  @media (max-width: 768px) {
+    .nav-panel { top: 8px; left: 8px; right: 8px; width: auto; max-height: calc(100% - 16px); }
+  }
+  .nav-panel-header { display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-bottom: 1px solid #eee; }
+  [data-theme="dark"] .nav-panel-header { border-bottom-color: #333; }
+  .nav-exit-btn { border: none; background: none; cursor: pointer; padding: 4px; border-radius: 6px; color: #555; display: flex; align-items: center; }
+  .nav-exit-btn:hover { background: #f0f0f0; }
+  [data-theme="dark"] .nav-exit-btn { color: #aaa; }
+  [data-theme="dark"] .nav-exit-btn:hover { background: #333; }
+  .nav-panel-title { font-size: 16px; font-weight: 700; color: #1a1a1a; }
+  [data-theme="dark"] .nav-panel-title { color: #fff; }
+  .nav-endpoints { padding: 12px 16px; border-bottom: 1px solid #eee; }
+  [data-theme="dark"] .nav-endpoints { border-bottom-color: #333; }
+  .nav-endpoint { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+  .nav-endpoint-label { font-size: 11px; color: #888; width: 36px; flex-shrink: 0; }
+  [data-theme="dark"] .nav-endpoint-label { color: #888; }
+  .nav-endpoint-input { flex: 1; border: 1px solid #ddd; border-radius: 6px; padding: 6px 10px; font-size: 13px; color: #333; background: #f8f8f5; }
+  [data-theme="dark"] .nav-endpoint-input { border-color: #444; color: #ddd; background: #2a2a2a; }
+  .nav-endpoint-divider { height: 1px; background: #eee; margin: 2px 0 2px 44px; }
+  [data-theme="dark"] .nav-endpoint-divider { background: #333; }
+  .nav-route-list { padding: 8px 12px; }
+  .nav-route-item { padding: 10px 12px; border-radius: 8px; cursor: pointer; margin-bottom: 6px; border: 2px solid transparent; background: #f8f8f5; transition: border-color 0.15s, background 0.15s; }
+  .nav-route-item:hover { background: #eef2ff; }
+  .nav-route-item.selected { border-color: #2f6bff; background: #eef2ff; }
+  [data-theme="dark"] .nav-route-item { background: #2a2a2a; }
+  [data-theme="dark"] .nav-route-item:hover { background: #2a3a5a; }
+  [data-theme="dark"] .nav-route-item.selected { border-color: #5b8cff; background: #2a3a5a; }
+  .nav-route-item-header { display: flex; align-items: baseline; gap: 8px; }
+  .nav-route-item-dur { font-size: 18px; font-weight: 700; color: #1a1a1a; }
+  [data-theme="dark"] .nav-route-item-dur { color: #fff; }
+  .nav-route-item-meta { font-size: 12px; color: #888; }
+  [data-theme="dark"] .nav-route-item-meta { color: #999; }
+  .nav-route-item-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: 6px; line-height: 1.5; }
+  .nav-route-item-summary .nav-chip-sep { color: #bbb; font-size: 11px; margin: 0 1px; }
+  [data-theme="dark"] .nav-route-item-summary .nav-chip-sep { color: #555; }
+  .nav-leg-chip { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 2px 8px; border-radius: 10px; color: #fff; font-weight: 600; background: #888; box-shadow: 0 1px 2px rgba(0,0,0,0.10); border: 1px solid rgba(0,0,0,0.10); }
+  .nav-leg-chip svg { width: 12px; height: 12px; flex-shrink: 0; }
+  [data-theme="dark"] .nav-leg-chip { border-color: rgba(255,255,255,0.12); box-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+  .nav-route-detail { padding: 0 16px 16px; }
+  .nav-route-detail-title { font-size: 13px; font-weight: 600; margin: 12px 0 8px; color: #555; }
+  [data-theme="dark"] .nav-route-detail-title { color: #ccc; }
+  .nav-detail-timeline { border-left: 3px solid #ddd; margin-left: 6px; padding-left: 12px; }
+  [data-theme="dark"] .nav-detail-timeline { border-left-color: #444; }
+  .nav-detail-leg { position: relative; margin-bottom: 8px; }
+  .nav-detail-leg::before { content: ''; position: absolute; left: -15px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: #fff; border: 2px solid #999; }
+  .nav-detail-leg.transit::before { border-color: var(--leg-color, #2f6bff); background: var(--leg-color, #2f6bff); }
+  .nav-detail-leg.walk::before { border-color: #aaa; background: #aaa; }
+  .nav-detail-leg-time { font-size: 11px; color: #999; }
+  [data-theme="dark"] .nav-detail-leg-time { color: #888; }
+  .nav-detail-leg-station { font-size: 13px; font-weight: 600; color: #333; }
+  [data-theme="dark"] .nav-detail-leg-station { color: #ddd; }
+  .nav-detail-leg-route { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: #fff; background: var(--leg-color, #2f6bff); padding: 3px 10px; border-radius: 10px; font-weight: 600; margin: 4px 0; box-shadow: 0 1px 2px rgba(0,0,0,0.12); border: 1px solid rgba(0,0,0,0.10); }
+  .nav-detail-leg-route svg { width: 13px; height: 13px; flex-shrink: 0; }
+  [data-theme="dark"] .nav-detail-leg-route { border-color: rgba(255,255,255,0.12); }
+  .nav-detail-leg-headsign { font-size: 11px; color: #888; margin: 2px 0; }
+  .nav-detail-leg-headsign .nav-headsign-label { display: inline-block; font-size: 9px; color: #aaa; background: #f0f0ee; padding: 1px 5px; border-radius: 3px; margin-right: 4px; letter-spacing: 0.05em; }
+  [data-theme="dark"] .nav-detail-leg-headsign { color: #999; }
+  [data-theme="dark"] .nav-detail-leg-headsign .nav-headsign-label { color: #888; background: #2a2a2a; }
+  .nav-detail-leg-walk { font-size: 11px; color: #888; display: inline-flex; align-items: center; gap: 4px; }
+  .nav-detail-leg-walk svg { width: 12px; height: 12px; flex-shrink: 0; }
+  [data-theme="dark"] .nav-detail-leg-walk { color: #999; }
+  .nav-detail-leg-platform { font-size: 10px; color: #aaa; }
+  .nav-loading { padding: 40px 16px; text-align: center; color: #888; font-size: 14px; }
+  .nav-error { padding: 24px 16px; text-align: center; color: #e74c3c; font-size: 13px; }
+  [data-theme="dark"] .nav-loading { color: #aaa; }
+  [data-theme="dark"] .nav-error { color: #ff6b6b; }
+  [data-theme="dark"] .leaflet-popup-content-wrapper, [data-theme="dark"] .leaflet-popup-tip { background: #252525; color: #e0e0e0; }
+  [data-theme="dark"] .leaflet-popup-content .mp-title { color: #fff; }
+  [data-theme="dark"] .leaflet-popup-content .mp-venue { color: #aaa; }
+  [data-theme="dark"] .leaflet-popup-content .mp-info { color: #bbb; }
+  [data-theme="dark"] .leaflet-popup-content .mp-summary { color: #aaa; border-top-color: #444; }
 
   .view-panel { display: none; }
   .view-panel.active { display: block; }
@@ -223,6 +341,7 @@
 <div class="tabs">
   <div class="tab active" data-view="recently">Recently</div>
   <div class="tab" data-view="timeline">Timeline</div>
+  <div class="tab" data-view="map">Map</div>
 </div>
 
 <div class="controls">
@@ -253,6 +372,33 @@
   <div class="monthly-container" id="recentlyContainer"></div>
 </div>
 
+<div class="view-panel" id="mapPanel">
+  <div class="map-no-loc-notice" id="mapNoLocNotice"></div>
+  <div id="mapContainer"></div>
+  <button class="map-locate-btn" id="mapLocateBtn" aria-label="現在地を取得" title="現在地を取得">
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="8"/></svg>
+  </button>
+  <div class="nav-panel" id="navPanel">
+    <div class="nav-panel-header">
+      <button class="nav-exit-btn" id="navExitBtn" aria-label="导航終了"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></button>
+      <span class="nav-panel-title">乗換案内</span>
+    </div>
+    <div class="nav-endpoints">
+      <div class="nav-endpoint">
+        <div class="nav-endpoint-label">出発</div>
+        <input type="text" id="navFromInput" class="nav-endpoint-input" readonly>
+      </div>
+      <div class="nav-endpoint-divider"></div>
+      <div class="nav-endpoint">
+        <div class="nav-endpoint-label">到着</div>
+        <input type="text" id="navToInput" class="nav-endpoint-input" readonly>
+      </div>
+    </div>
+    <div class="nav-route-list" id="navRouteList"></div>
+    <div class="nav-route-detail" id="navRouteDetail"></div>
+  </div>
+</div>
+
 <div class="tooltip" id="tooltip"></div>
 
 
@@ -260,6 +406,8 @@
   <div class="onboarding-card" id="onboardingCard"></div>
 </div>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <script>
 // Onboarding
 (function() {
@@ -346,6 +494,7 @@ document.getElementById('themeToggle').addEventListener('click', () => {
 });
 
 let DATA = null;
+let VENUES = {};
 let allEvents = [];
 let sourceColors = {};
 let currentView = 'recently';
@@ -386,20 +535,33 @@ function renderLegend() {
 }
 
 fetch('./result.json').then(r => { if (r.ok) return r.json(); throw 'not found'; })
-  .then(d => { DATA = d; init(); })
+  .then(d => {
+    DATA = d;
+    // Load venues.json in parallel; non-fatal if missing (map tab degrades).
+    return fetch('./venues.json').then(r => r.ok ? r.json() : null).catch(() => null).then(v => { VENUES = v || {}; });
+  })
+  .then(() => init())
   .catch(() => { document.getElementById('meta').textContent = 'result.json not found'; });
 
 // Tabs
+function switchView(view, opts = {}) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.view === view));
+  currentView = view;
+  document.getElementById('timelinePanel').classList.toggle('active', currentView === 'timeline');
+  document.getElementById('recentlyPanel').classList.toggle('active', currentView === 'recently');
+  document.getElementById('mapPanel').classList.toggle('active', currentView === 'map');
+  tooltip.style.display = 'none';
+  tooltip.classList.remove('pinned');
+  tooltipPinned = false;
+  render();
+  // Leaflet needs invalidateSize after the panel becomes visible.
+  if (currentView === 'map' && mapInstance) setTimeout(() => mapInstance.invalidateSize(), 50);
+  // Request geolocation only when entering Map tab (triggers browser prompt then).
+  if (currentView === 'map' && opts.requestLocation !== false) requestUserLocation();
+}
+
 document.querySelectorAll('.tab').forEach(tab => {
-  tab.addEventListener('click', () => {
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    tab.classList.add('active');
-    currentView = tab.dataset.view;
-    document.getElementById('timelinePanel').classList.toggle('active', currentView === 'timeline');
-    document.getElementById('recentlyPanel').classList.toggle('active', currentView === 'recently');
-    tooltip.style.display = 'none';
-    render();
-  });
+  tab.addEventListener('click', () => switchView(tab.dataset.view));
 });
 
 function init() {
@@ -440,6 +602,8 @@ function render() {
   const events = getFiltered();
   if (currentView === 'timeline') {
     renderGantt(events);
+  } else if (currentView === 'map') {
+    renderMap(events);
   } else {
     renderRecently(events);
   }
@@ -447,9 +611,13 @@ function render() {
 
 // Tooltip
 const tooltip = document.getElementById('tooltip');
-function showTooltip(e, ev) {
+let tooltipPinned = false;
+function showTooltip(e, ev, pinned) {
+  tooltipPinned = !!pinned;
+  tooltip.classList.toggle('pinned', tooltipPinned);
   const rec = ev.recommendation || 'normal';
   const recLabels = { must_see: 'Must See', recommended: 'Recommended' };
+  const coord = venueCoord(ev);
   let html = '';
   if (ev.image) html += `<img class="tt-image" src="${esc(ev.image)}" alt="" onerror="this.remove()">`;
   html += `<div class="tt-title">${esc(ev.title)}</div>`;
@@ -463,9 +631,31 @@ function showTooltip(e, ev) {
   if (ev.reservation_required) html += `<div>要予約</div>`;
   html += `</div>`;
   if (ev.summary) html += `<div class="tt-summary">${esc(ev.summary)}</div>`;
+  if (tooltipPinned) {
+    const detailDisabled = ev.url ? '' : ' disabled';
+    const navDisabled = coord ? '' : ' disabled';
+    html += `<div class="tt-actions"><button class="tt-btn tt-btn-detail" type="button"${detailDisabled}>詳細</button><button class="tt-btn tt-btn-nav" type="button"${navDisabled}>ナビ</button></div>`;
+  }
   tooltip.innerHTML = html;
   tooltip.style.display = 'block';
   positionTooltip(e);
+  if (tooltipPinned) bindTooltipActions(ev);
+}
+function bindTooltipActions(ev) {
+  const detailBtn = tooltip.querySelector('.tt-btn-detail');
+  const navBtn = tooltip.querySelector('.tt-btn-nav');
+  if (detailBtn && ev.url) {
+    detailBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      window.open(ev.url, '_blank');
+    });
+  }
+  if (navBtn) {
+    navBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      startNavigationForEvent(ev);
+    });
+  }
 }
 function positionTooltip(e) {
   tooltip.style.left = '0px';
@@ -480,7 +670,16 @@ function positionTooltip(e) {
   tooltip.style.left = x + 'px';
   tooltip.style.top = y + 'px';
 }
-document.addEventListener('mousemove', e => { if (tooltip.style.display === 'block') positionTooltip(e); });
+document.addEventListener('mousemove', e => {
+  if (tooltip.style.display === 'block' && !tooltipPinned) positionTooltip(e);
+});
+document.addEventListener('click', e => {
+  if (!tooltipPinned) return;
+  if (tooltip.contains(e.target) || e.target.closest('.gantt-bar')) return;
+  tooltipPinned = false;
+  tooltip.classList.remove('pinned');
+  tooltip.style.display = 'none';
+});
 
 // ---- MONTHLY ----
 function renderEventCard(ev) {
@@ -576,6 +775,510 @@ function renderRecently(events) {
       if (url) window.open(url, '_blank');
     });
   });
+}
+
+// ---- MAP ----
+// Venue normalization: strip room/exhibition-room suffixes so multiple events
+// at the same physical venue resolve to one canonical name in venues.json.
+// Must stay in sync with build_venues.py.
+const VENUE_ROOM_SUFFIXES = [
+  /\s+企画展示室.*$/,
+  /\s+コレクション展示室.*$/,
+  /\s+本館.*$/,
+  /\s+新館.*$/,
+  /\s+ギャラリー\s*\d.*$/,
+  /\s+ギャラリー\s*[1-9].*$/,
+  /\s+4Fコリドール$/,
+  /\s+本部棟.*$/,
+  /\s+じゆうエリア$/,
+  /\s+建築倉庫$/,
+];
+const VENUE_OVERRIDES = {
+  'TOKYO NODE GALLERY A/B/C': 'TOKYO NODE',
+  'TOKYO NODE GALLERY A/B/C・TOKYO NODE LAB': 'TOKYO NODE',
+  'TOKYO NODE HALL': 'TOKYO NODE',
+};
+function normalizeVenue(raw) {
+  const s = (raw || '').trim();
+  if (VENUE_OVERRIDES[s]) return VENUE_OVERRIDES[s];
+  for (const pat of VENUE_ROOM_SUFFIXES) {
+    const n = s.replace(pat, '');
+    if (n !== s) return n.trim();
+  }
+  return s;
+}
+function venueCoord(ev) {
+  const canon = normalizeVenue(ev.venue);
+  const entry = VENUES[canon];
+  if (entry && entry.lat != null && entry.lng != null) return { canonical: canon, lat: entry.lat, lng: entry.lng, entry };
+  return null;
+}
+
+let mapInstance = null;
+let mapTileLayer = null;
+let mapCluster = null;
+let mapFirstRender = true;
+
+function buildMapPopupHTML(ev) {
+  const rec = ev.recommendation || 'normal';
+  const recLabels = { must_see: 'Must See', recommended: 'Recommended' };
+  const coord = venueCoord(ev);
+  const navData = coord ? `data-nav-lat="${coord.lat}" data-nav-lng="${coord.lng}" data-nav-venue="${esc(ev.venue || '')}"` : '';
+  let h = '';
+  if (ev.image) h += `<img class="mp-image" src="${esc(ev.image)}" alt="" onerror="this.remove()">`;
+  h += `<div class="mp-title">${esc(ev.title)}</div>`;
+  h += `<div class="mp-venue">${esc(ev.venue || '')} - ${esc(ev._source)}</div>`;
+  if (recLabels[rec]) h += `<span class="mp-badge ${rec}">${recLabels[rec]}</span>`;
+  h += `<div class="mp-info">`;
+  h += `<div>${ev.start_date || '?'} ~ ${ev.end_date || '?'}</div>`;
+  if (ev.start_time) h += `<div>${ev.start_time}${ev.end_time ? ' - ' + ev.end_time : ''}</div>`;
+  if (ev.admission) h += `<div>${esc(ev.admission)}</div>`;
+  if (ev.closed_days) h += `<div>休館: ${esc(ev.closed_days)}</div>`;
+  if (ev.reservation_required) h += `<div>要予約</div>`;
+  h += `</div>`;
+  if (ev.summary) h += `<div class="mp-summary">${esc(ev.summary)}</div>`;
+  if (ev.url) h += `<a class="mp-link" href="${esc(ev.url)}" target="_blank">詳細を見る →</a>`;
+  if (coord) h += `<button class="mp-nav-btn" ${navData}>現在地からナビゲーション</button>`;
+  return h;
+}
+
+function renderMap(events) {
+  const container = document.getElementById('mapContainer');
+  const notice = document.getElementById('mapNoLocNotice');
+
+  if (!events.length) {
+    notice.style.display = 'none';
+    if (mapInstance) mapCluster.clearLayers();
+    return;
+  }
+
+  // Lazy-init map on first render.
+  if (!mapInstance) {
+    mapInstance = L.map(container, { zoomControl: true, scrollWheelZoom: true, maxZoom: 18, minZoom: 6 }).setView([35.68, 139.76], 11);
+    mapCluster = L.markerClusterGroup({ spiderfyOnMaxZoom: true, showCoverageOnHover: false, maxClusterRadius: 50 });
+    mapInstance.addLayer(mapCluster);
+    bindPopupNav();
+  }
+
+  // (Re)apply tile layer matching current theme.
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const tileUrl = isDark
+    ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+    : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+  const tileAttr = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>';
+  if (mapTileLayer) mapInstance.removeLayer(mapTileLayer);
+  mapTileLayer = L.tileLayer(tileUrl, { attribution: tileAttr, maxZoom: 19 }).addTo(mapInstance);
+
+  // Build markers: one per event. Same-venue events stack and cluster/spiderfy.
+  mapCluster.clearLayers();
+  const located = [];
+  const noLoc = [];
+  events.forEach(ev => {
+    const c = venueCoord(ev);
+    if (!c) { noLoc.push(ev); return; }
+    located.push(Object.assign({ ev }, c));
+  });
+
+  located.forEach(({ ev, lat, lng }) => {
+    const rec = ev.recommendation || 'normal';
+    const color = rec === 'must_see' ? '#ea4335' : rec === 'recommended' ? '#f39c12' : '#3a8ee6';
+    const icon = L.divIcon({
+      className: 'map-pin',
+      html: `<svg width="28" height="40" viewBox="0 0 28 40"><path d="M14 0C6.27 0 0 6.27 0 14c0 9.5 14 26 14 26s14-16.5 14-26C28 6.27 21.73 0 14 0z" fill="${color}" stroke="#fff" stroke-width="1.5"/><circle cx="14" cy="14" r="4.5" fill="#fff"/></svg>`,
+      iconSize: [28, 40],
+      iconAnchor: [14, 40],
+      popupAnchor: [0, -38],
+    });
+    const m = L.marker([lat, lng], { icon });
+    m.bindPopup(buildMapPopupHTML(ev), { maxWidth: 320 });
+    mapCluster.addLayer(m);
+  });
+
+  // First render: fixed Tokyo default. fitBounds is avoided because outliers
+  // (八王子/横浜) distort the view; user can pan/zoom to see all markers.
+  if (mapFirstRender && located.length) {
+    mapFirstRender = false;
+  }
+
+  // Fail loud: surface events that have no coordinates.
+  if (noLoc.length) {
+    notice.textContent = `${noLoc.length} events without location (not shown on map)`;
+    notice.style.display = 'block';
+  } else {
+    notice.style.display = 'none';
+  }
+
+  setTimeout(() => mapInstance.invalidateSize(), 50);
+}
+
+// ---- USER LOCATION ----
+let userLocationMarker = null;
+let userLocationRequested = false;
+
+function requestUserLocation(manual, onSuccess) {
+  if (!('geolocation' in navigator) || !mapInstance) return;
+  // Auto-prompt (tab click): only once per page load.
+  // Manual (locate button): always re-request, even if done before.
+  if (!manual && userLocationRequested) return;
+  userLocationRequested = true;
+  const btn = document.getElementById('mapLocateBtn');
+  if (manual && btn) btn.classList.add('locating');
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      if (manual && btn) btn.classList.remove('locating');
+      const lat = pos.coords.latitude, lng = pos.coords.longitude;
+      // Guard against (0,0) "Null Island" fallback: some browsers return
+      // success with null-island coords when no real fix is available, which
+      // would pan the map into the Pacific. Reject only that case.
+      if (!isFinite(lat) || !isFinite(lng) || (lat === 0 && lng === 0)) return;
+      // Remove previous marker if re-locating.
+      if (userLocationMarker) { mapInstance.removeLayer(userLocationMarker); userLocationMarker = null; }
+      const icon = L.divIcon({
+        className: 'map-user-pin',
+        html: '<div class="map-user-dot"></div>',
+        iconSize: [18, 18],
+        iconAnchor: [9, 9],
+      });
+      userLocationMarker = L.marker([lat, lng], { icon, zIndexOffset: 1000 }).addTo(mapInstance);
+      userLocationMarker.bindPopup('あなたの現在地', { closeButton: false });
+      // Only auto-pan when the user is actually in Japan — otherwise keep the
+      // Tokyo view (all events are in Tokyo; panning to a far location would
+      // hide them). The blue dot is still added at the real location.
+      const inJapan = lat >= 24 && lat <= 46 && lng >= 122 && lng <= 147;
+      if (inJapan) mapInstance.panTo([lat, lng], { animate: true });
+      if (onSuccess) onSuccess(userLocationMarker.getLatLng());
+    },
+    err => {
+      if (manual && btn) btn.classList.remove('locating');
+      // Denied / unavailable / timeout — fail silent, no marker. User still sees events.
+      // Common on first visit (user dismisses prompt); nothing to surface here.
+    },
+    { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+  );
+}
+
+document.getElementById('mapLocateBtn').addEventListener('click', () => requestUserLocation(true));
+
+// ---- NAVIGATION (transit guidance API + map route view) ----
+// /guidance/plan returns each option with .journey (sidebar text) and .map.segments[].polyline
+// (real walking paths from OSM + real transit polylines following stop order). No more
+// geocoding station names by hand.
+const TRANSIT_GUIDANCE_URL = 'https://api.transit.ls8h.com/api/v1/guidance/plan';
+
+let navState = null; // { options, selected, fromLL, toLL, toVenue }
+let navRouteLayers = []; // polylines + markers on map
+
+function fmtDuration(secs) {
+  const m = Math.round(secs / 60);
+  if (m < 60) return m + '分';
+  return Math.floor(m / 60) + '時間' + (m % 60) + '分';
+}
+
+function fmtTime(secs) {
+  const h = Math.floor(secs / 3600) % 24;
+  const m = Math.floor(secs / 60) % 60;
+  return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+}
+
+// Walks shorter than this are in-station transfers — noise in the sidebar.
+const WALK_HIDE_THRESHOLD_SECS = 120;
+// Drop "all-walking" fallback journeys longer than this. The API returns a
+// raw walk option even for 40+ km routes (船橋→上野毛 = 9h on foot); nobody
+// is going to walk that.
+const ALL_WALK_MAX_SECS = 60 * 60;
+// When OSM walking routing fails, the API can fall back to a two-point
+// straight line. Keep short links, but reject long direct "walks" as invalid.
+const DIRECT_WALK_FALLBACK_MAX_KM = 1.5;
+
+function distanceKm(a, b) {
+  const lat1 = a.lat * Math.PI / 180;
+  const lat2 = b.lat * Math.PI / 180;
+  const dLat = (b.lat - a.lat) * Math.PI / 180;
+  const dLon = (b.lon - a.lon) * Math.PI / 180;
+  const s = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
+  return 6371 * 2 * Math.atan2(Math.sqrt(s), Math.sqrt(1 - s));
+}
+
+function isLongDirectWalkSegment(seg) {
+  if (seg.kind !== 'walk') return false;
+  const pts = (seg.polyline || []).filter(p => p && p.lat != null && p.lon != null);
+  if (pts.length !== 2) return false;
+  return distanceKm(pts[0], pts[1]) > DIRECT_WALK_FALLBACK_MAX_KM;
+}
+
+function hasUnroutableWalkFallback(opt) {
+  return (opt.map?.segments || []).some(isLongDirectWalkSegment);
+}
+
+// Pick a readable text color (near-black or white) for a brand bg color.
+// Uses WCAG sRGB relative luminance — Tokyo transit colors span from
+// bright yellow (#FFD400) to deep magenta (#B6007A), and a fixed
+// white-on-color baseline fails WCAG AA for ~70% of them. We pick whichever
+// of black/white gives the higher contrast ratio.
+function chipTextColor(hex) {
+  if (!hex) return '#fff';
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex);
+  if (!m) return '#fff';
+  const n = parseInt(m[1], 16);
+  const lin = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map(c => {
+    const s = c / 255;
+    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+  });
+  const L = 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2];
+  // Black-vs-white crossover at L ≈ 0.179. Above → dark text, below → white.
+  return L > 0.179 ? '#1a1a1a' : '#fff';
+}
+
+// Inline SVG icons (stroke uses currentColor so they follow chipTextColor's
+// black/white pick automatically). Tiny line-art, matched to the header icon
+// style elsewhere in this file.
+const SVG_ICON_ATTR = 'viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
+const SVG_ICONS = {
+  rail:  `<svg ${SVG_ICON_ATTR}><rect x="5" y="3" width="14" height="14" rx="2"/><path d="M5 11h14"/><path d="M8 20l-2 2M16 20l2 2"/><circle cx="9" cy="15" r="0.6" fill="currentColor" stroke="none"/><circle cx="15" cy="15" r="0.6" fill="currentColor" stroke="none"/></svg>`,
+  bus:   `<svg ${SVG_ICON_ATTR}><rect x="4" y="3" width="16" height="13" rx="2"/><path d="M4 10h16"/><circle cx="8" cy="19" r="1.5"/><circle cx="16" cy="19" r="1.5"/></svg>`,
+  ferry: `<svg ${SVG_ICON_ATTR}><path d="M3 19c1.5.7 2.5 1 4 1s2.5-1 4-1 2.5 1 4 1 2.5-.3 4-1"/><path d="M5 16l2-7h10l2 7"/><path d="M12 9V4"/></svg>`,
+  walk:  `<svg ${SVG_ICON_ATTR}><circle cx="13" cy="4" r="2"/><path d="M8 21l3-7 3 3v4"/><path d="M11 14l-2-3 3-3 3 2 2 1"/></svg>`,
+};
+
+function modeIconSVG(mode) {
+  if (mode === 'bus') return SVG_ICONS.bus;
+  if (mode === 'ferry') return SVG_ICONS.ferry;
+  if (mode === 'walk') return SVG_ICONS.walk;
+  // rail / subway / metro / tram and any unknown rail-shaped mode.
+  return SVG_ICONS.rail;
+}
+
+function legChipHTML(leg) {
+  const color = leg.color ? '#' + leg.color : '#666';
+  const text = chipTextColor(color);
+  const name = esc(leg.routeName || leg.mode || '乗車');
+  return `<span class="nav-leg-chip" style="background:${color};color:${text}">${modeIconSVG(leg.mode)}${name}</span>`;
+}
+
+function summarizeLegsHTML(legs) {
+  const transit = legs.filter(l => l.kind === 'transit');
+  if (!transit.length) return `<span class="nav-leg-chip" style="background:#888;color:#fff">${SVG_ICONS.walk}徒歩</span>`;
+  return transit.map(legChipHTML).join('<span class="nav-chip-sep">→</span>');
+}
+
+function enterNavMode(toLat, toLng, toVenue) {
+  if (!userLocationMarker) {
+    // Trigger location request first; user can retry after blue dot appears.
+    requestUserLocation(true);
+    alert('現在地を取得してからもう一度「ナビゲーション」を押してください');
+    return;
+  }
+  const fromLL = userLocationMarker.getLatLng();
+  navState = { options: [], selected: 0, fromLL, toLL: { lat: toLat, lng: toLng }, toVenue };
+
+  document.getElementById('mapPanel').classList.add('nav-active');
+  document.getElementById('navFromInput').value = '現在地';
+  document.getElementById('navToInput').value = toVenue;
+  document.getElementById('navRouteList').innerHTML = '<div class="nav-loading">経路を検索中…</div>';
+  document.getElementById('navRouteDetail').innerHTML = '';
+  if (mapInstance) mapInstance.closePopup();
+  setTimeout(() => mapInstance.invalidateSize(), 50);
+
+  const from = `geo:${fromLL.lat},${fromLL.lng}`;
+  const to = `geo:${toLat},${toLng}`;
+  const params = new URLSearchParams({ from, to, fromLabel: '現在地', toLabel: toVenue, numItineraries: '3' });
+  fetch(`${TRANSIT_GUIDANCE_URL}?${params}`)
+    .then(r => r.ok ? r.json() : Promise.reject(new Error('API error ' + r.status)))
+    .then(data => {
+      const rawOpts = data.options || [];
+      let opts = rawOpts;
+      // Drop unreasonable "walk-the-entire-route" fallbacks. The API will
+      // happily return a 9-hour walk option for 40+ km routes.
+      opts = opts.filter(o => {
+        const legs = o.journey?.legs || [];
+        const allWalk = legs.length > 0 && legs.every(l => l.kind === 'walk');
+        return !(allWalk && (o.journey?.durationSecs ?? 0) > ALL_WALK_MAX_SECS);
+      });
+      // Also drop partial routes where the final/initial walk is just a long
+      // two-point straight line. Example: 船橋→上野毛 currently comes back as
+      // train to 代々木 plus a 9.7km direct "walk" polyline to the campus.
+      opts = opts.filter(o => !hasUnroutableWalkFallback(o));
+      // Sort by total duration ascending so [0] is the fastest option,
+      // then default-select it.
+      opts.sort((a, b) => (a.journey?.durationSecs ?? Infinity) - (b.journey?.durationSecs ?? Infinity));
+      navState.options = opts;
+      if (!navState.options.length) {
+        const msg = rawOpts.length
+          ? 'この目的地への正確な経路を乗換APIから取得できませんでした'
+          : '経路が見つかりませんでした';
+        document.getElementById('navRouteList').innerHTML = '<div class="nav-error">' + esc(msg) + '</div>';
+        return;
+      }
+      renderRouteList();
+      selectRoute(0);
+    })
+    .catch(err => {
+      document.getElementById('navRouteList').innerHTML = '<div class="nav-error">経路検索に失敗: ' + esc(err.message || '') + '</div>';
+    });
+}
+
+function renderRouteList() {
+  const list = document.getElementById('navRouteList');
+  list.innerHTML = '';
+  navState.options.forEach((opt, i) => {
+    const j = opt.journey;
+    const fare = j.fare ? j.fare.ticket : null;
+    const fareStr = fare != null ? fare + '円' : '';
+    const depTime = fmtTime(j.departureSecs);
+    const arrTime = fmtTime(j.arrivalSecs);
+    const item = document.createElement('div');
+    item.className = 'nav-route-item' + (i === navState.selected ? ' selected' : '');
+    item.innerHTML = `<div class="nav-route-item-header"><span class="nav-route-item-dur">${fmtDuration(j.durationSecs)}</span><span class="nav-route-item-meta">${depTime}→${arrTime} · 乗換${j.transferCount}回${fareStr ? ' · ' + fareStr : ''}</span></div><div class="nav-route-item-summary">${summarizeLegsHTML(j.legs)}</div>`;
+    item.addEventListener('click', () => selectRoute(i));
+    list.appendChild(item);
+  });
+}
+
+function selectRoute(index) {
+  navState.selected = index;
+  renderRouteList();
+  renderRouteDetail(index);
+  drawRouteOnMap(index);
+}
+
+function renderRouteDetail(index) {
+  const route = navState.options[index].journey;
+  const detail = document.getElementById('navRouteDetail');
+  let html = '<div class="nav-route-detail-title">詳細</div><div class="nav-detail-timeline">';
+  route.legs.forEach(leg => {
+    const legDurSecs = leg.arrivalSecs - leg.departureSecs;
+    // Hide trivial in-station transfer walks (under WALK_HIDE_THRESHOLD_SECS).
+    if (leg.kind === 'walk' && legDurSecs < WALK_HIDE_THRESHOLD_SECS) return;
+    const fromName = esc(leg.from.name || '');
+    const toName = esc(leg.to.name || '');
+    const depTime = fmtTime(leg.departureSecs);
+    const arrTime = fmtTime(leg.arrivalSecs);
+    const dur = fmtDuration(legDurSecs);
+    const platform = leg.from.platformCode ? `<span class="nav-detail-leg-platform">[${esc(leg.from.platformCode)}番]</span> ` : '';
+    if (leg.kind === 'walk') {
+      html += `<div class="nav-detail-leg walk"><div class="nav-detail-leg-time">${depTime} → ${arrTime}</div><div class="nav-detail-leg-station">${fromName}</div><div class="nav-detail-leg-walk">${SVG_ICONS.walk}徒歩 ${dur}</div><div class="nav-detail-leg-station">${toName}</div></div>`;
+    } else {
+      const color = leg.color ? '#' + leg.color : '#2f6bff';
+      const text = chipTextColor(color);
+      const routeName = esc(leg.routeName || leg.mode || '乗車');
+      const headsign = leg.headsign ? `<div class="nav-detail-leg-headsign"><span class="nav-headsign-label">行先</span>${esc(leg.headsign)}方面</div>` : '';
+      html += `<div class="nav-detail-leg transit" style="--leg-color:${color}"><div class="nav-detail-leg-time">${depTime} → ${arrTime}</div><div class="nav-detail-leg-station">${platform}${fromName}</div><div class="nav-detail-leg-route" style="--leg-color:${color};color:${text}">${modeIconSVG(leg.mode)}${routeName}</div>${headsign}<div class="nav-detail-leg-walk">${dur}</div><div class="nav-detail-leg-station">${toName}</div></div>`;
+    }
+  });
+  html += '</div>';
+  detail.innerHTML = html;
+}
+
+function drawRouteOnMap(index) {
+  clearRouteLayers();
+  if (!mapInstance || !navState) return;
+  const opt = navState.options[index];
+  const map = opt && opt.map;
+  if (!map) return;
+
+  // Index points by id so segment endpoints can pick up their role/name for markers.
+  const pointById = {};
+  (map.points || []).forEach(p => { pointById[p.id] = p; });
+
+  // Draw segments using the real polylines the API returns
+  // (osmWalk for walks, stopOrder along the line for transit).
+  (map.segments || []).forEach(seg => {
+    const coords = (seg.polyline || []).map(p => [p.lat, p.lon]).filter(c => c[0] != null && c[1] != null);
+    if (coords.length < 2) return;
+    if (seg.kind === 'walk') {
+      const line = L.polyline(coords, { color: '#666', weight: 4, opacity: 0.75, dashArray: '6,8', lineCap: 'round', lineJoin: 'round' });
+      line.addTo(mapInstance);
+      navRouteLayers.push(line);
+    } else {
+      const color = seg.color ? '#' + seg.color : '#2f6bff';
+      // White casing for contrast, then colored line on top.
+      const casing = L.polyline(coords, { color: '#fff', weight: 8, opacity: 0.9, lineCap: 'round', lineJoin: 'round' });
+      casing.addTo(mapInstance);
+      navRouteLayers.push(casing);
+      const line = L.polyline(coords, { color, weight: 5, opacity: 0.95, lineCap: 'round', lineJoin: 'round' });
+      line.addTo(mapInstance);
+      navRouteLayers.push(line);
+    }
+  });
+
+  // Place markers per point role. Origin uses the existing blue dot, so skip it here.
+  (map.points || []).forEach(p => {
+    if (p.role === 'origin') return;
+    const ll = L.latLng(p.lat, p.lon);
+    if (p.role === 'destination') {
+      const dest = L.marker(ll, {
+        icon: L.divIcon({
+          className: 'map-pin',
+          html: '<div style="width:18px;height:18px;border-radius:50%;background:#e74c3c;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.4);"></div>',
+          iconSize: [18, 18],
+          iconAnchor: [9, 9],
+        }),
+        interactive: false,
+        zIndexOffset: 1000,
+      });
+      dest.addTo(mapInstance);
+      navRouteLayers.push(dest);
+    } else {
+      // stop / transfer — small white dot, tooltip with station name.
+      const dot = L.circleMarker(ll, { radius: 5, color: '#1a1a1a', weight: 2, fillColor: '#fff', fillOpacity: 1 });
+      if (p.name) dot.bindTooltip(p.name, { direction: 'top', offset: [0, -4] });
+      dot.addTo(mapInstance);
+      navRouteLayers.push(dot);
+    }
+  });
+
+  // Fit to the bounds the API provides; pad enough that the floating sidebar
+  // (340px wide top-left card) doesn't cover the start of the route.
+  const b = map.bounds;
+  if (b && b.minLat != null) {
+    const bounds = L.latLngBounds([[b.minLat, b.minLon], [b.maxLat, b.maxLon]]);
+    mapInstance.fitBounds(bounds, { paddingTopLeft: [360, 32], paddingBottomRight: [32, 32], animate: true });
+  }
+}
+
+function clearRouteLayers() {
+  navRouteLayers.forEach(l => mapInstance.removeLayer(l));
+  navRouteLayers = [];
+}
+
+function exitNavMode() {
+  clearRouteLayers();
+  navState = null;
+  document.getElementById('mapPanel').classList.remove('nav-active');
+  document.getElementById('navRouteList').innerHTML = '';
+  document.getElementById('navRouteDetail').innerHTML = '';
+  setTimeout(() => mapInstance.invalidateSize(), 50);
+}
+
+document.getElementById('navExitBtn').addEventListener('click', exitNavMode);
+
+// Bind nav button clicks when popups open (content is dynamic).
+function bindPopupNav() {
+  if (!mapInstance) return;
+  mapInstance.on('popupopen', e => {
+    const btn = e.popup.getElement().querySelector('.mp-nav-btn');
+    if (btn) btn.addEventListener('click', () => {
+      const toLat = parseFloat(btn.dataset.navLat);
+      const toLng = parseFloat(btn.dataset.navLng);
+      const toVenue = btn.dataset.navVenue || '目的地';
+      enterNavMode(toLat, toLng, toVenue);
+    });
+  });
+}
+
+function startNavigationForEvent(ev) {
+  const coord = venueCoord(ev);
+  if (!coord) return;
+  switchView('map', { requestLocation: false });
+  setTimeout(() => {
+    if (userLocationMarker) {
+      enterNavMode(coord.lat, coord.lng, ev.venue || coord.canonical || '目的地');
+      return;
+    }
+    requestUserLocation(true, () => {
+      enterNavMode(coord.lat, coord.lng, ev.venue || coord.canonical || '目的地');
+    });
+  }, 80);
 }
 
 // ---- GANTT ----
@@ -702,7 +1405,7 @@ function renderGantt(events) {
     container.scrollLeft = Math.max(0, todayIdx * colW - container.clientWidth / 3);
   }
 
-  // Events — desktop: hover tooltip + click opens URL; mobile: tap shows tooltip, second tap opens URL
+  // Events — desktop: hover preview, click pins actions; mobile: tap shows tooltip, second tap opens URL.
   const isMobile = 'ontouchstart' in window;
   let activeBarIdx = -1;
   container.querySelectorAll('.gantt-bar').forEach(bar => {
@@ -718,9 +1421,16 @@ function renderGantt(events) {
         }
       });
     } else {
-      bar.addEventListener('mouseenter', e => showTooltip(e, events[idx]));
-      bar.addEventListener('mouseleave', () => tooltip.style.display = 'none');
-      bar.addEventListener('click', () => { if (events[idx].url) window.open(events[idx].url, '_blank'); });
+      bar.addEventListener('mouseenter', e => {
+        if (!tooltipPinned) showTooltip(e, events[idx]);
+      });
+      bar.addEventListener('mouseleave', () => {
+        if (!tooltipPinned) tooltip.style.display = 'none';
+      });
+      bar.addEventListener('click', e => {
+        e.stopPropagation();
+        showTooltip(e, events[idx], true);
+      });
     }
   });
   if (isMobile) {
