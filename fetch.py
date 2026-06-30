@@ -21,7 +21,10 @@ DETAIL_TTL_DAYS = 7
 
 def load_cache() -> dict:
     if CACHE_FILE.exists():
-        return json.loads(CACHE_FILE.read_text(encoding="utf-8"))
+        try:
+            return json.loads(CACHE_FILE.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, ValueError):
+            print("  [WARN] cache.json empty or corrupt, starting fresh")
     return {}
 
 
@@ -32,7 +35,10 @@ def save_cache(cache: dict):
 
 def load_detail_cache() -> dict:
     if DETAIL_CACHE_FILE.exists():
-        return json.loads(DETAIL_CACHE_FILE.read_text(encoding="utf-8"))
+        try:
+            return json.loads(DETAIL_CACHE_FILE.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, ValueError):
+            print("  [WARN] detail_cache.json empty or corrupt, starting fresh")
     return {}
 
 
