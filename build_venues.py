@@ -28,45 +28,39 @@ GEOCODE_CACHE = ROOT / "output" / "geocode_cache.json"
 SUGGEST_URL = "https://api.transit.ls8h.com/api/v1/places/suggest"
 
 # --- normalization -----------------------------------------------------------
-# Strip room/exhibition-room suffixes so multiple events at the same physical
-# venue collapse to one canonical name. Conservative: only strip patterns that
-# are unambiguously room-level. When unsure, keep the full string (fail loud).
-
-# Patterns applied in order; each strips a trailing room descriptor.
-ROOM_SUFFIXES = [
-    r"\s+企画展示室.*$",
-    r"\s+コレクション展示室.*$",
-    r"\s+本館.*$",
-    r"\s+新館.*$",
-    r"\s+ギャラリー\s*\d.*$",
-    r"\s+ギャラリー\s*[1-9].*$",
-    r"\s+4Fコリドール$",
-    r"\s+本部棟.*$",
-    r"\s+じゆうエリア$",
-    r"\s+建築倉庫$",
-    r"\s+第\d.*展示室.*$",
-    r"\s+\d+階.*$",
-]
-
-# Whole-string replacements for venues where a cleaner canonical name helps
-# the geocoder, but the room suffix rule above doesn't catch it.
-CANONICAL_OVERRIDES = {
-    # TOKYO NODE rooms -> the building itself (geocoder won't find room names)
-    "TOKYO NODE GALLERY A/B/C": "TOKYO NODE",
-    "TOKYO NODE GALLERY A/B/C・TOKYO NODE LAB": "TOKYO NODE",
-    "TOKYO NODE HALL": "TOKYO NODE",
-}
+# Match raw event venue strings to canonical venue names in venues.json.
+#
+# Strategy (replaces fragile regex suffix-stripping):
+#   1. Alias lookup — venues.json entries may carry an "aliases" array of
+#      known alternate names; an exact match wins immediately.
+#   2. Longest-substring-contain — if any canonical key is a substring of the
+#      raw venue, the longest such key wins (greedy). This handles "館名 + 部屋"
+#      and "館名（新館2階）" without per-site rules.
+#   3. Fall through to the raw string — it becomes a new canonical to geocode.
+#
+# build_venues.py loads the *existing* venues.json (if any) to drive matching
+# on re-runs; the very first seed run has no venues.json so everything falls
+# through and raw strings become canonicals as-is.
 
 
-def normalize(raw: str) -> str:
+def build_matchers(existing_venues: dict) -> tuple[list[str], dict[str, str]]:
+    """From existing venues.json, build (canonicals longest-first, alias->canonical map)."""
+    canonicals = sorted(existing_venues.keys(), key=len, reverse=True)
+    alias_map: dict[str, str] = {}
+    for key, entry in existing_venues.items():
+        for alias in (entry.get("aliases") or []):
+            alias_map[alias] = key
+    return canonicals, alias_map
+
+
+def normalize(raw: str, canonicals: list[str], alias_map: dict[str, str]) -> str:
     """Map a raw event venue string to its canonical venue name."""
     s = raw.strip()
-    if s in CANONICAL_OVERRIDES:
-        return CANONICAL_OVERRIDES[s]
-    for pat in ROOM_SUFFIXES:
-        new = re.sub(pat, "", s)
-        if new != s:
-            return new.strip()
+    if s in alias_map:
+        return alias_map[s]
+    for c in canonicals:  # longest-first
+        if c in s:
+            return c
     return s
 
 
@@ -131,11 +125,17 @@ def main(dry_run: bool) -> None:
             if v:
                 raw_venues.append(v)
 
+    # Load existing venues.json for contain+alias matching.
+    existing_venues: dict = {}
+    if VENUES_JSON.exists():
+        existing_venues = json.loads(VENUES_JSON.read_text())
+    canon_keys, alias_map = build_matchers(existing_venues)
+
     # raw -> canonical map + counts
     raw_to_canonical: dict[str, str] = {}
     canonical_counts: Counter[str] = Counter()
     for v in raw_venues:
-        c = normalize(v)
+        c = normalize(v, canon_keys, alias_map)
         raw_to_canonical[v] = c
         canonical_counts[c] += 1
 

@@ -538,7 +538,7 @@ fetch('/api/result.json').then(r => { if (r.ok) return r.json(); throw 'not foun
   .then(d => {
     DATA = d;
     // Load venues.json in parallel; non-fatal if missing (map tab degrades).
-    return fetch('/api/venues.json').then(r => r.ok ? r.json() : null).catch(() => null).then(v => { VENUES = v || {}; });
+    return fetch('/api/venues.json').then(r => r.ok ? r.json() : null).catch(() => null).then(v => { VENUES = v || {}; rebuildVenueMatchers(); });
   })
   .then(() => init())
   .catch(() => { document.getElementById('meta').textContent = 'result.json not found'; });
@@ -778,34 +778,25 @@ function renderRecently(events) {
 }
 
 // ---- MAP ----
-// Venue normalization: strip room/exhibition-room suffixes so multiple events
-// at the same physical venue resolve to one canonical name in venues.json.
+// Venue normalization: match raw event venue strings to canonical keys in
+// venues.json via (1) alias lookup and (2) longest-substring-contain.
 // Must stay in sync with build_venues.py.
-const VENUE_ROOM_SUFFIXES = [
-  /\s+企画展示室.*$/,
-  /\s+コレクション展示室.*$/,
-  /\s+本館.*$/,
-  /\s+新館.*$/,
-  /\s+ギャラリー\s*\d.*$/,
-  /\s+ギャラリー\s*[1-9].*$/,
-  /\s+4Fコリドール$/,
-  /\s+本部棟.*$/,
-  /\s+じゆうエリア$/,
-  /\s+建築倉庫$/,
-  /\s+第\d.*展示室.*$/,
-  /\s+\d+階.*$/,
-];
-const VENUE_OVERRIDES = {
-  'TOKYO NODE GALLERY A/B/C': 'TOKYO NODE',
-  'TOKYO NODE GALLERY A/B/C・TOKYO NODE LAB': 'TOKYO NODE',
-  'TOKYO NODE HALL': 'TOKYO NODE',
-};
+let VENUE_CANONICALS = [];   // keys sorted longest-first
+let VENUE_ALIAS_MAP = {};    // alias string -> canonical key
+function rebuildVenueMatchers() {
+  VENUE_CANONICALS = Object.keys(VENUES).sort((a, b) => b.length - a.length);
+  VENUE_ALIAS_MAP = {};
+  for (const [key, entry] of Object.entries(VENUES)) {
+    for (const alias of (entry.aliases || [])) {
+      VENUE_ALIAS_MAP[alias] = key;
+    }
+  }
+}
 function normalizeVenue(raw) {
   const s = (raw || '').trim();
-  if (VENUE_OVERRIDES[s]) return VENUE_OVERRIDES[s];
-  for (const pat of VENUE_ROOM_SUFFIXES) {
-    const n = s.replace(pat, '');
-    if (n !== s) return n.trim();
+  if (VENUE_ALIAS_MAP[s]) return VENUE_ALIAS_MAP[s];
+  for (const c of VENUE_CANONICALS) {
+    if (s.includes(c)) return c;
   }
   return s;
 }

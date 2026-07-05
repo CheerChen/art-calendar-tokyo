@@ -79,7 +79,12 @@
     "kind": "place",
     "confidence": "high",
     "verified": false,
-    "note": "building-level coordinate from 虎ノ門ヒルズビジネスタワー; TOKYO NODE is on 6F"
+    "note": "building-level coordinate from 虎ノ門ヒルズビジネスタワー; TOKYO NODE is on 6F",
+    "aliases": [
+      "TOKYO NODE GALLERY A/B/C",
+      "TOKYO NODE GALLERY A/B/C・TOKYO NODE LAB",
+      "TOKYO NODE HALL"
+    ]
   },
   "Tokyo International Gallery": {
     "lat": 35.620684700000005,
