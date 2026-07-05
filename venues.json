@@ -215,6 +215,32 @@
     "confidence": "high",
     "verified": true
   },
+  "千葉市美術館": {
+    "lat": 35.60907555000001,
+    "lng": 140.1246615,
+    "address": null,
+    "endpoint": "geo:35.609076,140.124662",
+    "source": "osm",
+    "matched_name": "千葉市美術館",
+    "name_en": "Chiba City Museum of Art",
+    "description": "施設 2地点",
+    "kind": "place",
+    "confidence": "high",
+    "verified": true
+  },
+  "千葉県立美術館": {
+    "lat": 35.601392175,
+    "lng": 140.10140685000002,
+    "address": null,
+    "endpoint": "geo:35.601392,140.101407",
+    "source": "osm",
+    "matched_name": "千葉県立美術館",
+    "name_en": "Chiba Prefectural Museum of Art",
+    "description": "施設 2地点",
+    "kind": "place",
+    "confidence": "high",
+    "verified": true
+  },
   "東京オペラシティ アートギャラリー": {
     "lat": 35.683003,
     "lng": 139.686756,

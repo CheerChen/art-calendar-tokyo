@@ -44,6 +44,8 @@ ROOM_SUFFIXES = [
     r"\s+本部棟.*$",
     r"\s+じゆうエリア$",
     r"\s+建築倉庫$",
+    r"\s+第\d.*展示室.*$",
+    r"\s+\d+階.*$",
 ]
 
 # Whole-string replacements for venues where a cleaner canonical name helps
