@@ -94,6 +94,18 @@ SOURCES = [
         "parser": "tokyonode",
         "detail_selector": "section.section_e-gallery_before_info",
     },
+    {
+        "name": "千葉県立美術館",
+        "url": "https://www.chiba-muse.or.jp/ART/exhibition/",
+        "parser": "chibamuse",
+        "detail_selector": "article",
+    },
+    {
+        "name": "千葉市美術館",
+        "url": "https://www.ccma-net.jp/exhibitions/",
+        "parser": "ccma",
+        "detail_selector": "article.article-main",
+    },
 ]
 
 HEADERS = {
@@ -482,6 +494,111 @@ def parse_operacity(raw: str, today: str) -> list:
     return events
 
 
+def parse_chibamuse(raw: str, today: str) -> list:
+    import re
+    from bs4 import BeautifulSoup
+
+    soup = BeautifulSoup(raw, "html.parser")
+    events = []
+
+    for item in soup.select("ul.layout_exhibition > li.item"):
+        a = item.find("a", href=True)
+        if not a:
+            continue
+        title_el = item.select_one("h3.title")
+        if not title_el:
+            continue
+        title = title_el.get_text().strip()
+
+        time_el = item.select_one("p.time")
+        date_text = time_el.get_text().strip() if time_el else ""
+
+        start_date = None
+        end_date = None
+        m = re.search(r"(\d{4})年(\d{1,2})月(\d{1,2})日[（(].*?[）)]\s*[～~]\s*(\d{4})年(\d{1,2})月(\d{1,2})日", date_text)
+        if m:
+            start_date = f"{m.group(1)}-{int(m.group(2)):02d}-{int(m.group(3)):02d}"
+            end_date = f"{m.group(4)}-{int(m.group(5)):02d}-{int(m.group(6)):02d}"
+
+        if end_date and end_date < _cutoff_date(today):
+            continue
+        if not start_date:
+            continue
+
+        url = a.get("href")
+        img_el = item.find("img")
+        image = img_el.get("src") if img_el else None
+
+        events.append({
+            "title": title,
+            "venue": "千葉県立美術館",
+            "start_date": start_date,
+            "end_date": end_date,
+            "start_time": None,
+            "end_time": None,
+            "reservation_required": False,
+            "url": url,
+            "image": image,
+            "summary": None,
+            "recommendation": None,
+        })
+
+    return events
+
+
+def parse_ccma(raw: str, today: str) -> list:
+    import re
+    from bs4 import BeautifulSoup
+
+    soup = BeautifulSoup(raw, "html.parser")
+    events = []
+
+    for item in soup.select("article.item"):
+        title_a = item.select_one("div.title a")
+        if not title_a:
+            continue
+        title = title_a.get_text().strip()
+
+        period_el = item.select_one("div.period p")
+        date_text = period_el.get_text().strip() if period_el else ""
+
+        start_date = None
+        end_date = None
+        m = re.search(
+            r"(\d{4})年(\d{1,2})月(\d{1,2})日[［\[][^］\]]+[］\]]\s*[-–—]+\s*(?:(\d{4})年)?(\d{1,2})月(\d{1,2})日",
+            date_text,
+        )
+        if m:
+            start_date = f"{m.group(1)}-{int(m.group(2)):02d}-{int(m.group(3)):02d}"
+            end_year = m.group(4) or m.group(1)
+            end_date = f"{end_year}-{int(m.group(5)):02d}-{int(m.group(6)):02d}"
+
+        if end_date and end_date < _cutoff_date(today):
+            continue
+        if not start_date:
+            continue
+
+        url = title_a.get("href")
+        img_el = item.select_one("div.img img")
+        image = img_el.get("src") if img_el else None
+
+        events.append({
+            "title": title,
+            "venue": "千葉市美術館",
+            "start_date": start_date,
+            "end_date": end_date,
+            "start_time": None,
+            "end_time": None,
+            "reservation_required": False,
+            "url": url,
+            "image": image,
+            "summary": None,
+            "recommendation": None,
+        })
+
+    return events
+
+
 PARSERS = {
     "mot": parse_mot,
     "tobikan": parse_tobikan,
@@ -489,4 +606,6 @@ PARSERS = {
     "tokyonode": parse_tokyonode,
     "operacity": parse_operacity,
     "warehouse": parse_warehouse,
+    "chibamuse": parse_chibamuse,
+    "ccma": parse_ccma,
 }

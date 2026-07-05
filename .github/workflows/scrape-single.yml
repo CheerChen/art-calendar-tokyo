@@ -24,6 +24,8 @@ on:
           - 東京オペラシティアートギャラリー
           - SOMPO美術館
           - TOKYO NODE
+          - 千葉県立美術館
+          - 千葉市美術館
 
 permissions:
   contents: read
