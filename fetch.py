@@ -63,7 +63,12 @@ def fetch_page(url: str, retries: int = 3) -> str:
             time.sleep(wait)
             continue
         resp.raise_for_status()
-        resp.encoding = resp.apparent_encoding
+        # Only override when the server omitted a charset (requests defaults
+        # to ISO-8859-1 in that case). Trust an explicit charset declaration —
+        # apparent_encoding is a statistical guess that can misfire on CI hosts
+        # and corrupt UTF-8 pages (e.g. warehouseofart.org).
+        if resp.encoding is None or resp.encoding.lower() == "iso-8859-1":
+            resp.encoding = resp.apparent_encoding
         return resp.text
 
 
