@@ -45,7 +45,7 @@ def main():
     out = process_source(client, src, cache, detail_cache, run_dir)
     if out is None:
         return
-    events, _ = out
+    events, text_len, extract_meta = out
 
     save_cache(cache)
     save_detail_cache(detail_cache)
@@ -61,7 +61,8 @@ def main():
     result["sources"].append({
         "name": src["name"],
         "url": src["url"],
-        "content_length": 0,
+        "content_length": text_len,
+        "extract_meta": extract_meta,
         "events": events,
     })
     save_file(result_path, json.dumps(result, ensure_ascii=False, indent=2))

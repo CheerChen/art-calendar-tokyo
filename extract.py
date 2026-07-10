@@ -11,6 +11,8 @@ from sources import ENRICH_PROMPT_BASIC, ENRICH_PROMPT_DETAIL, SYSTEM_PROMPT_TEM
 
 MIN_CONTENT_FOR_RETRY = 500
 MAX_UNICODE_RETRIES = 1
+# Soft cap for page text fed to the LLM. Truncation is always announced.
+DEFAULT_MAX_INPUT_CHARS = 80000
 
 # Korean, Cyrillic, Thai, Arabic — scripts that should never appear in JP/EN art exhibition text
 _ANOMALOUS_RE = re.compile(r'[\u0400-\u04FF\uAC00-\uD7AF\u1100-\u11FF\u3130-\u318F\u0E00-\u0E7F\u0600-\u06FF]')
@@ -160,8 +162,24 @@ def _call_llm_with_unicode_check(client: OpenAI, system_prompt: str, user_msg: s
     return _clean_anomalous_unicode(best)
 
 
+def budget_text(text: str, limit: int | None = None) -> str:
+    """Cap text length for LLM input. Never silent: always log how much was dropped."""
+    if limit is None:
+        limit = int(_env("LLM_MAX_INPUT_CHARS", DEFAULT_MAX_INPUT_CHARS))
+    if limit <= 0 or len(text) <= limit:
+        return text
+    dropped = len(text) - limit
+    print(
+        f"  [TRUNCATED] input {len(text)} → {limit} chars "
+        f"({dropped} dropped; set LLM_MAX_INPUT_CHARS to raise)",
+        flush=True,
+    )
+    return text[:limit]
+
+
 def extract_events(client: OpenAI, source_name: str, source_url: str, text: str) -> list:
     """Extract events from page text via LLM. Retries once if 0 events but content is long enough."""
+    text = budget_text(text)
     system = SYSTEM_PROMPT_TEMPLATE.format(today=datetime.now(timezone.utc).strftime("%Y-%m-%d"))
     user_msg = f"Source: {source_name}\nURL: {source_url}\n\nPage content:\n{text}"
 

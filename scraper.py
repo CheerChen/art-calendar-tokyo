@@ -7,17 +7,26 @@ from pathlib import Path
 from sources import SOURCES, PARSERS
 from fetch import (
     OUTPUT_DIR, load_cache, save_cache, load_detail_cache, save_detail_cache,
-    content_hash, fetch_page, extract_list_text, fetch_detail_text, save_file,
-    DETAIL_TTL_DAYS,
+    content_hash, fetch_page, extract_list, fetch_detail_text, save_file,
+    report_event_stats, DETAIL_TTL_DAYS,
 )
 from extract import create_client, extract_events, enrich_events, build_enrich_input
 
 
+def _empty_meta() -> dict:
+    return {"item_count": None, "empty_url": 0, "empty_image": 0, "warnings": []}
+
+
 def process_source(client, src, cache, detail_cache, run_dir):
-    """Process a single source. Returns (events, text_length) or None on failure."""
+    """Process a single source.
+
+    Returns (events, text_length, extract_meta) or None on hard failure.
+    extract_meta carries never-silent diagnostics (DRIFT?/SPA?/field empties).
+    """
     name = src["name"]
     slug = re.sub(r"[^\w]", "_", name)
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    extract_meta = _empty_meta()
     print(f"Fetching {name}... ", end="", flush=True)
 
     # --- Fetch ---
@@ -28,18 +37,26 @@ def process_source(client, src, cache, detail_cache, run_dir):
             text = fetch_page(src["url"])
         else:
             raw_html = fetch_page(src["url"])
-            text = extract_list_text(raw_html, src)
+            list_result = extract_list(raw_html, src)
+            text = list_result.text
+            extract_meta = list_result.to_meta()
     except Exception as e:
         print(f"FETCH ERROR: {e}", end="")
         cached = cache.get(name)
         if cached and cached.get("events"):
             print(f" -> fetch failed, using cached {len(cached['events'])} events (LLM skipped)")
-            return cached["events"], 0
+            return cached["events"], 0, extract_meta
         print(" -> no cache available, skipping")
         return None
 
     if not text:
-        print("no content extracted, skipping")
+        warn = "; ".join(extract_meta.get("warnings") or []) or "empty extract"
+        print(f"no content extracted ({warn})", end="")
+        cached = cache.get(name)
+        if cached and cached.get("events"):
+            print(f" -> using cached {len(cached['events'])} events")
+            return cached["events"], 0, extract_meta
+        print(" -> no cache available, skipping")
         return None
 
     # --- For parser sources, always parse first to compute LLM input ---
@@ -48,6 +65,7 @@ def process_source(client, src, cache, detail_cache, run_dir):
     if is_parser:
         parser_fn = PARSERS[src["parser"]]
         parsed_events = parser_fn(text, today)
+        extract_meta = report_event_stats(name, parsed_events, kind="parser")
 
     # --- Build the content we hash to detect changes (NOT yet sent to the LLM) ---
     if is_parser:
@@ -103,7 +121,7 @@ def process_source(client, src, cache, detail_cache, run_dir):
                 print(f"  -> cache hit, LLM skipped (cached {cached['fetched_at']})")
         else:
             print(f"  -> cache hit, LLM skipped (cached {cached['fetched_at']})")
-        return events, len(llm_input)
+        return events, len(llm_input), extract_meta
 
     # --- Extract / Enrich ---
     if is_parser:
@@ -132,7 +150,15 @@ def process_source(client, src, cache, detail_cache, run_dir):
         print(f" done ({len(events)} events)")
     else:
         events = extract_events(client, name, src["url"], text)
-        print(f"  -> LLM extract: {len(events)} events", end="", flush=True)
+        # Merge LLM-stage stats into meta (keep structural warnings from list extract).
+        llm_meta = report_event_stats(name, events, kind="llm")
+        extract_meta = {
+            **extract_meta,
+            "empty_url": llm_meta["empty_url"],
+            "empty_image": llm_meta["empty_image"],
+            "warnings": list(extract_meta.get("warnings") or []) + llm_meta["warnings"],
+            "llm_event_count": llm_meta["item_count"],
+        }
 
         selector = src.get("detail_selector")
         if selector and events:
@@ -145,10 +171,10 @@ def process_source(client, src, cache, detail_cache, run_dir):
                 if dt:
                     detail_texts[url] = dt
             if detail_texts:
-                print(f", {len(detail_texts)} details fetched, LLM enrich...", end="", flush=True)
+                print(f"  details: {len(detail_texts)} fetched, LLM enrich...", end="", flush=True)
                 events = enrich_events(client, events, detail_texts, detail_cache)
+                print(" done")
 
-        print(f" done")
 
     # --- Fallback: fill missing URL with source URL ---
     for e in events:
@@ -157,7 +183,8 @@ def process_source(client, src, cache, detail_cache, run_dir):
 
     # --- Cache fallback: don't overwrite good cache with empty result ---
     if not events and cached and cached.get("events"):
-        print(f"  [FALLBACK] keeping {len(cached['events'])} cached events")
+        reason = "; ".join(extract_meta.get("warnings") or []) or "0 events"
+        print(f"  [FALLBACK] keeping {len(cached['events'])} cached events ({reason})")
         events = cached["events"]
         # Don't update cache — next run will retry extraction
     else:
@@ -167,7 +194,7 @@ def process_source(client, src, cache, detail_cache, run_dir):
             "events": events,
         }
 
-    return events, len(llm_input)
+    return events, len(llm_input), extract_meta
 
 
 def main():
@@ -187,11 +214,12 @@ def main():
         out = process_source(client, src, cache, detail_cache, run_dir)
         if out is None:
             continue
-        events, text_len = out
+        events, text_len, extract_meta = out
         result["sources"].append({
             "name": src["name"],
             "url": src["url"],
             "content_length": text_len,
+            "extract_meta": extract_meta,
             "events": events,
         })
         save_cache(cache)
@@ -201,7 +229,12 @@ def main():
     save_file(run_dir / "result.json", json_str)
     save_file(Path("result.json"), json_str)
 
-    print(f"\nDone: {len(result['sources'])} sources, {sum(len(s['events']) for s in result['sources'])} events")
+    n_warn = sum(1 for s in result["sources"] if (s.get("extract_meta") or {}).get("warnings"))
+    print(
+        f"\nDone: {len(result['sources'])} sources, "
+        f"{sum(len(s['events']) for s in result['sources'])} events"
+        f"{f', {n_warn} source(s) with warnings' if n_warn else ''}"
+    )
 
 
 if __name__ == "__main__":

@@ -33,7 +33,7 @@ from openai import OpenAI
 
 import extract
 from extract import _load_env, build_enrich_input, enrich_events, extract_events
-from fetch import extract_list_text, fetch_detail_text, fetch_page
+from fetch import extract_list, fetch_detail_text, fetch_page, report_event_stats
 from sources import PARSERS, SOURCES
 
 EVAL_DIR = Path("eval_output")
@@ -102,7 +102,10 @@ def prepare_input(src: dict, detail_cache: dict, today: str) -> dict | None:
         elif "parser" in src:
             text = fetch_page(src["url"])
         else:
-            text = extract_list_text(fetch_page(src["url"]), src)
+            list_result = extract_list(fetch_page(src["url"]), src)
+            text = list_result.text
+            if list_result.warnings:
+                print(f"  [WARN] {name}: {'; '.join(list_result.warnings)}")
     except Exception as e:
         print(f"  [SKIP] {name}: fetch failed: {e}")
         return None
@@ -113,6 +116,7 @@ def prepare_input(src: dict, detail_cache: dict, today: str) -> dict | None:
 
     if "parser" in src:
         events = PARSERS[src["parser"]](text, today)
+        report_event_stats(name, events, kind="parser")
         # Fetch detail pages once; both backends enrich the same events+details.
         detail_texts = None
         selector = src.get("detail_selector")
