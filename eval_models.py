@@ -78,9 +78,12 @@ def make_client(profile: dict) -> OpenAI:
 
 def run_backend(profile: dict, fn):
     """Run fn() with the backend's model active. extract.get_model() reads
-    LLM_MODEL from env at call time, so we set it around the call."""
+    LLM_MODEL from env at call time, so we set it around the call. Fallbacks
+    are disabled so an unavailable candidate cannot silently skew the eval."""
     prev = os.environ.get("LLM_MODEL")
+    prev_fallbacks = os.environ.get("LLM_FALLBACK_MODELS")
     os.environ["LLM_MODEL"] = profile["model"]
+    os.environ["LLM_FALLBACK_MODELS"] = "[]"
     try:
         return fn(make_client(profile))
     finally:
@@ -88,6 +91,10 @@ def run_backend(profile: dict, fn):
             os.environ.pop("LLM_MODEL", None)
         else:
             os.environ["LLM_MODEL"] = prev
+        if prev_fallbacks is None:
+            os.environ.pop("LLM_FALLBACK_MODELS", None)
+        else:
+            os.environ["LLM_FALLBACK_MODELS"] = prev_fallbacks
 
 
 # --- Input preparation (fetched ONCE, shared by both backends) ---

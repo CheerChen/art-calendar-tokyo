@@ -5,7 +5,7 @@ import re
 from datetime import datetime, timezone
 from pathlib import Path
 
-from openai import OpenAI
+from openai import APIStatusError, OpenAI
 
 from sources import ENRICH_PROMPT_BASIC, ENRICH_PROMPT_DETAIL, SYSTEM_PROMPT_TEMPLATE
 
@@ -62,6 +62,10 @@ def _load_env():
 # swapped (or tuned) from repo/CI variables WITHOUT editing code. See .env.example.
 # Defaults point at Qwen on DashScope (OpenAI-compatible).
 DEFAULT_MODEL = "qwen3.7-max"
+DEFAULT_FALLBACK_MODELS = (
+    "qwen3.7-flash",
+    "qwen3.7-flash-2026-07-15",
+)
 DEFAULT_BASE_URL = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
 DEFAULT_MAX_TOKENS = 16384
 DEFAULT_TEMPERATURE = 0.1
@@ -89,6 +93,46 @@ def get_model() -> str:
     return _env("LLM_MODEL", DEFAULT_MODEL)
 
 
+def get_model_candidates() -> list[str]:
+    """Return the primary model followed by ordered, de-duplicated fallbacks."""
+    raw = _env("LLM_FALLBACK_MODELS", json.dumps(DEFAULT_FALLBACK_MODELS))
+    value = str(raw).strip()
+    if value.startswith("["):
+        parsed = json.loads(value)
+        if not isinstance(parsed, list) or not all(isinstance(item, str) for item in parsed):
+            raise ValueError("LLM_FALLBACK_MODELS must be a JSON list of model names")
+        fallbacks = [model.strip() for model in parsed if model.strip()]
+    else:
+        # Keep comma-separated values working for existing local configurations.
+        fallbacks = [model.strip() for model in value.split(",") if model.strip()]
+    return list(dict.fromkeys([get_model(), *fallbacks]))
+
+
+def _is_free_tier_quota_error(exc: APIStatusError) -> bool:
+    """Match DashScope's terminal free-tier allocation error exactly."""
+    if exc.status_code != 403:
+        return False
+
+    def contains_code(value) -> bool:
+        if isinstance(value, dict):
+            return any(contains_code(item) for item in value.values())
+        if isinstance(value, (list, tuple)):
+            return any(contains_code(item) for item in value)
+        return value == "AllocationQuota.FreeTierOnly"
+
+    return contains_code(exc.body)
+
+
+def _get_active_model(client: OpenAI, candidates: list[str]) -> tuple[int, str]:
+    """Keep the selected fallback on the client for the rest of this run."""
+    signature = tuple(candidates)
+    if getattr(client, "_art_model_candidates", None) != signature:
+        client._art_model_candidates = signature
+        client._art_model_index = 0
+    index = client._art_model_index
+    return index, candidates[index]
+
+
 def _thinking_off_body(base_url: str) -> dict:
     """Disable reasoning/thinking mode for structured extraction (default ON
     makes non-streaming JSON calls slow/hang). The param name is platform-
@@ -104,16 +148,39 @@ def _thinking_off_body(base_url: str) -> dict:
 
 def _call_llm(client: OpenAI, system_prompt: str, user_msg: str) -> list:
     """Call LLM and parse JSON array response."""
-    resp = client.chat.completions.create(
-        model=get_model(),
-        max_tokens=int(_env("LLM_MAX_TOKENS", DEFAULT_MAX_TOKENS)),
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_msg},
-        ],
-        temperature=float(_env("LLM_TEMPERATURE", DEFAULT_TEMPERATURE)),
-        extra_body=_thinking_off_body(str(client.base_url)),
-    )
+    candidates = get_model_candidates()
+    while True:
+        index, model = _get_active_model(client, candidates)
+        try:
+            resp = client.chat.completions.create(
+                model=model,
+                max_tokens=int(_env("LLM_MAX_TOKENS", DEFAULT_MAX_TOKENS)),
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_msg},
+                ],
+                temperature=float(_env("LLM_TEMPERATURE", DEFAULT_TEMPERATURE)),
+                extra_body=_thinking_off_body(str(client.base_url)),
+            )
+            break
+        except APIStatusError as exc:
+            if not _is_free_tier_quota_error(exc):
+                raise
+            next_index = index + 1
+            if next_index >= len(candidates):
+                print(
+                    f"  [MODEL EXHAUSTED] {model}: AllocationQuota.FreeTierOnly; "
+                    "no fallback model remains",
+                    flush=True,
+                )
+                raise
+            client._art_model_index = next_index
+            print(
+                f"  [MODEL FALLBACK] {model} -> {candidates[next_index]} "
+                "(AllocationQuota.FreeTierOnly)",
+                flush=True,
+            )
+
     raw = resp.choices[0].message.content.strip()
 
     cleaned = re.sub(r"^```(?:json)?\s*", "", raw)
