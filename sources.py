@@ -6,6 +6,7 @@ from event_schema import make_event
 
 # Bump when non-prompt/model extraction behavior or output semantics change.
 PIPELINE_VERSION = "2026-07-25.1"
+OPERACITY_UPCOMING_URL = "https://www.operacity.jp/contents/exhibition/upcoming?lang=ja&ag_home=0"
 
 
 SOURCES = [
@@ -87,7 +88,7 @@ SOURCES = [
     },
     {
         "name": "東京オペラシティアートギャラリー",
-        "url": "https://www.operacity.jp/contents/exhibition/upcoming?lang=ja&ag_home=0",
+        "url": OPERACITY_UPCOMING_URL,
         "parser": "operacity",
     },
     {
@@ -455,7 +456,11 @@ def parse_operacity(raw: str, today: str) -> list:
                 venue += " " + place_el.get_text().strip()
 
             link_el = info.select_one("div.p-exhList__more a")
-            url = (base + link_el["href"]) if link_el and link_el.get("href") else None
+            url = (
+                base + link_el["href"]
+                if link_el and link_el.get("href")
+                else OPERACITY_UPCOMING_URL
+            )
 
             fig = item.select_one("figure.p-exhList__thumb img")
             image = fig.get("src") if fig else None
