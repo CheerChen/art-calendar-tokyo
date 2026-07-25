@@ -1,6 +1,13 @@
 """Source configurations, parsers, and prompt templates."""
 import json
 
+from event_schema import make_event
+
+
+# Bump when non-prompt/model extraction behavior or output semantics change.
+PIPELINE_VERSION = "2026-07-25.1"
+
+
 SOURCES = [
     {
         "name": "東京藝術大学大学美術館",
@@ -216,22 +223,14 @@ def parse_mot(raw: str, today: str) -> list:
         crown = (item.get("crownName") or "").strip()
         title = (item.get("title") or "").strip()
         full_title = f"{crown} {title}".strip() if crown else title
-        events.append({
-            "title": full_title,
-            "venue": "東京都現代美術館",
-            "start_date": _fmt_date(item.get("start", "")),
-            "end_date": _fmt_date(end),
-            "start_time": None,
-            "end_time": None,
-            "closed_days": None,
-            "admission": None,
-            "reservation_required": False,
-            "url": "https://www.mot-art-museum.jp" + item.get("permalink", ""),
-            "image": ("https://www.mot-art-museum.jp" + item["imagePc"]) if item.get("imagePc") else None,
-            "summary": None,
-            "recommendation": None,
-            "detail_fetched": False,
-        })
+        events.append(make_event(
+            title=full_title,
+            venue="東京都現代美術館",
+            start_date=_fmt_date(item.get("start", "")),
+            end_date=_fmt_date(end),
+            url="https://www.mot-art-museum.jp" + item.get("permalink", ""),
+            image=("https://www.mot-art-museum.jp" + item["imagePc"]) if item.get("imagePc") else None,
+        ))
     return events
 
 
@@ -243,19 +242,14 @@ def parse_nact(raw: str, today: str) -> list:
         end = item.get("sp_ex_to", "")
         if not end or end < cutoff:
             continue
-        events.append({
-            "title": item.get("sp_ex_title", ""),
-            "venue": "国立新美術館",
-            "start_date": item.get("sp_ex_from"),
-            "end_date": end,
-            "start_time": None,
-            "end_time": None,
-            "reservation_required": False,
-            "url": "https://www.nact.jp" + item.get("sp_ex_permalink", ""),
-            "image": ("https://www.nact.jp" + item["sp_ex_thumbnail"]) if item.get("sp_ex_thumbnail") else None,
-            "summary": None,
-            "recommendation": None,
-        })
+        events.append(make_event(
+            title=item.get("sp_ex_title", ""),
+            venue="国立新美術館",
+            start_date=item.get("sp_ex_from"),
+            end_date=end,
+            url="https://www.nact.jp" + item.get("sp_ex_permalink", ""),
+            image=("https://www.nact.jp" + item["sp_ex_thumbnail"]) if item.get("sp_ex_thumbnail") else None,
+        ))
     return events
 
 
@@ -294,19 +288,17 @@ def parse_tokyonode(raw: str, today: str) -> list:
         venue = "TOKYO NODE " + "・".join(places) if places else "TOKYO NODE"
         has_ticket = bool(item.get("ticket_url"))
 
-        events.append({
-            "title": (item.get("title") or "").strip(),
-            "venue": venue,
-            "start_date": start_date,
-            "end_date": end_date,
-            "start_time": start_time,
-            "end_time": end_time,
-            "reservation_required": has_ticket,
-            "url": "https://www.tokyonode.jp" + item.get("this_url", ""),
-            "image": ("https://www.tokyonode.jp" + item["img_key"]) if item.get("img_key") else None,
-            "summary": None,
-            "recommendation": None,
-        })
+        events.append(make_event(
+            title=(item.get("title") or "").strip(),
+            venue=venue,
+            start_date=start_date,
+            end_date=end_date,
+            start_time=start_time,
+            end_time=end_time,
+            reservation_required=has_ticket,
+            url="https://www.tokyonode.jp" + item.get("this_url", ""),
+            image=("https://www.tokyonode.jp" + item["img_key"]) if item.get("img_key") else None,
+        ))
     return events
 
 
@@ -351,18 +343,14 @@ def parse_tobikan(raw: str, today: str) -> list:
         url = f"https://www.tobikan.jp{link}" if link else None
         fee = row.get("fee", "")
 
-        events.append({
-            "title": title,
-            "venue": "東京都美術館",
-            "start_date": start_date,
-            "end_date": end_date,
-            "start_time": None,
-            "end_time": None,
-            "reservation_required": fee == "1",
-            "url": url,
-            "summary": None,
-            "recommendation": None,
-        })
+        events.append(make_event(
+            title=title,
+            venue="東京都美術館",
+            start_date=start_date,
+            end_date=end_date,
+            reservation_required=fee == "1",
+            url=url,
+        ))
     return events
 
 
@@ -412,19 +400,14 @@ def parse_warehouse(raw: str, today: str) -> list:
         img_el = item.select_one("div.eventImage img")
         image = img_el.get("src") if img_el else None
 
-        events.append({
-            "title": title,
-            "venue": venue,
-            "start_date": start_date,
-            "end_date": end_date,
-            "start_time": None,
-            "end_time": None,
-            "reservation_required": False,
-            "url": url,
-            "image": image,
-            "summary": None,
-            "recommendation": None,
-        })
+        events.append(make_event(
+            title=title,
+            venue=venue,
+            start_date=start_date,
+            end_date=end_date,
+            url=url,
+            image=image,
+        ))
 
     return events
 
@@ -477,19 +460,14 @@ def parse_operacity(raw: str, today: str) -> list:
             fig = item.select_one("figure.p-exhList__thumb img")
             image = fig.get("src") if fig else None
 
-            events.append({
-                "title": title,
-                "venue": venue,
-                "start_date": start_date,
-                "end_date": end_date,
-                "start_time": None,
-                "end_time": None,
-                "reservation_required": False,
-                "url": url,
-                "image": image,
-                "summary": None,
-                "recommendation": None,
-            })
+            events.append(make_event(
+                title=title,
+                venue=venue,
+                start_date=start_date,
+                end_date=end_date,
+                url=url,
+                image=image,
+            ))
 
     return events
 
@@ -529,19 +507,14 @@ def parse_chibamuse(raw: str, today: str) -> list:
         img_el = item.find("img")
         image = img_el.get("src") if img_el else None
 
-        events.append({
-            "title": title,
-            "venue": "千葉県立美術館",
-            "start_date": start_date,
-            "end_date": end_date,
-            "start_time": None,
-            "end_time": None,
-            "reservation_required": False,
-            "url": url,
-            "image": image,
-            "summary": None,
-            "recommendation": None,
-        })
+        events.append(make_event(
+            title=title,
+            venue="千葉県立美術館",
+            start_date=start_date,
+            end_date=end_date,
+            url=url,
+            image=image,
+        ))
 
     return events
 
@@ -582,19 +555,14 @@ def parse_ccma(raw: str, today: str) -> list:
         img_el = item.select_one("div.img img")
         image = img_el.get("src") if img_el else None
 
-        events.append({
-            "title": title,
-            "venue": "千葉市美術館",
-            "start_date": start_date,
-            "end_date": end_date,
-            "start_time": None,
-            "end_time": None,
-            "reservation_required": False,
-            "url": url,
-            "image": image,
-            "summary": None,
-            "recommendation": None,
-        })
+        events.append(make_event(
+            title=title,
+            venue="千葉市美術館",
+            start_date=start_date,
+            end_date=end_date,
+            url=url,
+            image=image,
+        ))
 
     return events
 

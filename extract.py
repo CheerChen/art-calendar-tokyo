@@ -133,6 +133,12 @@ def _get_active_model(client: OpenAI, candidates: list[str]) -> tuple[int, str]:
     return index, candidates[index]
 
 
+def get_selected_model(client: OpenAI) -> str:
+    """Return the model currently selected for this client/run."""
+    _, model = _get_active_model(client, get_model_candidates())
+    return model
+
+
 def _thinking_off_body(base_url: str) -> dict:
     """Disable reasoning/thinking mode for structured extraction (default ON
     makes non-streaming JSON calls slow/hang). The param name is platform-
@@ -186,18 +192,27 @@ def _call_llm(client: OpenAI, system_prompt: str, user_msg: str) -> list:
     cleaned = re.sub(r"^```(?:json)?\s*", "", raw)
     cleaned = re.sub(r"\s*```$", "", cleaned).strip()
 
+    parsed = None
     try:
-        return json.loads(cleaned)
+        parsed = json.loads(cleaned)
     except json.JSONDecodeError:
         m = re.search(r"\[.*\]", cleaned, re.DOTALL)
         if m:
             try:
-                return json.loads(m.group())
+                parsed = json.loads(m.group())
             except json.JSONDecodeError:
                 pass
+    if parsed is None:
         print(f"  [WARN] LLM returned unparseable JSON")
         print(raw[:500])
         return []
+    if not isinstance(parsed, list):
+        print(f"  [WARN] LLM returned {type(parsed).__name__}, expected JSON array")
+        return []
+    invalid = sum(1 for item in parsed if not isinstance(item, dict))
+    if invalid:
+        print(f"  [WARN] LLM returned {invalid} non-object array item(s); dropped")
+    return [item for item in parsed if isinstance(item, dict)]
 
 
 def _call_llm_with_unicode_check(client: OpenAI, system_prompt: str, user_msg: str) -> list:
@@ -284,7 +299,16 @@ def enrich_events(client: OpenAI, events: list, detail_texts: dict | None = None
     system_prompt = ENRICH_PROMPT_DETAIL if prompt_type == "detail" else ENRICH_PROMPT_BASIC
     enrichments = _call_llm_with_unicode_check(client, system_prompt, user_msg)
 
-    enrich_map = {e["index"]: e for e in enrichments if isinstance(e, dict)}
+    enrich_map = {}
+    for enrichment in enrichments:
+        index = enrichment.get("index")
+        if not isinstance(index, int) or isinstance(index, bool):
+            print("  [WARN] LLM enrichment missing a valid integer index; dropped")
+            continue
+        if not 0 <= index < len(events):
+            print(f"  [WARN] LLM enrichment index out of range: {index}; dropped")
+            continue
+        enrich_map[index] = enrichment
     for i, event in enumerate(events):
         em = enrich_map.get(i, {})
         event["summary"] = em.get("summary", "")

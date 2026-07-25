@@ -21,6 +21,8 @@ import urllib.request
 from collections import Counter
 from pathlib import Path
 
+from venue_matching import build_matchers, normalize_venue
+
 ROOT = Path(__file__).parent
 RESULT_JSON = ROOT / "result.json"
 VENUES_JSON = ROOT / "venues.json"
@@ -41,27 +43,6 @@ SUGGEST_URL = "https://api.transit.ls8h.com/api/v1/places/suggest"
 # build_venues.py loads the *existing* venues.json (if any) to drive matching
 # on re-runs; the very first seed run has no venues.json so everything falls
 # through and raw strings become canonicals as-is.
-
-
-def build_matchers(existing_venues: dict) -> tuple[list[str], dict[str, str]]:
-    """From existing venues.json, build (canonicals longest-first, alias->canonical map)."""
-    canonicals = sorted(existing_venues.keys(), key=len, reverse=True)
-    alias_map: dict[str, str] = {}
-    for key, entry in existing_venues.items():
-        for alias in (entry.get("aliases") or []):
-            alias_map[alias] = key
-    return canonicals, alias_map
-
-
-def normalize(raw: str, canonicals: list[str], alias_map: dict[str, str]) -> str:
-    """Map a raw event venue string to its canonical venue name."""
-    s = raw.strip()
-    if s in alias_map:
-        return alias_map[s]
-    for c in canonicals:  # longest-first
-        if c in s:
-            return c
-    return s
 
 
 # --- geocoding ---------------------------------------------------------------
@@ -135,7 +116,7 @@ def main(dry_run: bool) -> None:
     raw_to_canonical: dict[str, str] = {}
     canonical_counts: Counter[str] = Counter()
     for v in raw_venues:
-        c = normalize(v, canon_keys, alias_map)
+        c = normalize_venue(v, canon_keys, alias_map)
         raw_to_canonical[v] = c
         canonical_counts[c] += 1
 

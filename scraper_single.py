@@ -4,10 +4,12 @@ import sys
 from pathlib import Path
 from datetime import datetime, timezone
 
-from sources import SOURCES
+from event_schema import EVENT_SCHEMA_VERSION
+from sources import PIPELINE_VERSION, SOURCES
 from fetch import OUTPUT_DIR, load_cache, save_cache, load_detail_cache, save_detail_cache, save_file
 from extract import create_client
 from scraper import process_source
+from venue_matching import build_matchers, load_venues
 
 
 def main():
@@ -27,6 +29,7 @@ def main():
     client = create_client()
     cache = load_cache()
     detail_cache = load_detail_cache()
+    venue_matchers = build_matchers(load_venues())
     ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     run_dir = OUTPUT_DIR / ts
 
@@ -42,7 +45,7 @@ def main():
     if source_urls:
         print(f"Cleared {len(source_urls)} detail cache entries")
 
-    out = process_source(client, src, cache, detail_cache, run_dir)
+    out = process_source(client, src, cache, detail_cache, run_dir, venue_matchers)
     if out is None:
         return
     events, text_len, extract_meta = out
@@ -57,6 +60,9 @@ def main():
     else:
         result = {"fetched_at": datetime.now(timezone.utc).isoformat(), "sources": []}
 
+    result["fetched_at"] = datetime.now(timezone.utc).isoformat()
+    result["pipeline_version"] = PIPELINE_VERSION
+    result["event_schema_version"] = EVENT_SCHEMA_VERSION
     result["sources"] = [s for s in result["sources"] if s["name"] != name]
     result["sources"].append({
         "name": src["name"],

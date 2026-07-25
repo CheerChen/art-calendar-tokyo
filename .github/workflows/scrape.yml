@@ -16,6 +16,24 @@ jobs:
 
       - uses: astral-sh/setup-uv@v4
 
+      - name: Ensure 90-day snapshot retention
+        continue-on-error: true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: e77f59c260bfe0ae47e1e998e989eea0
+        run: |
+          rules="$(npx --yes wrangler@4 r2 bucket lifecycle list art-calendar-data)"
+          if grep -Fq "expire-result-snapshots-90d" <<<"$rules"; then
+            echo "Snapshot lifecycle rule already exists"
+          else
+            npx --yes wrangler@4 r2 bucket lifecycle add \
+              art-calendar-data \
+              expire-result-snapshots-90d \
+              snapshots/ \
+              --expire-days 90 \
+              --force
+          fi
+
       - name: Restore scraper state from R2
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
