@@ -114,6 +114,12 @@ SOURCES = [
         "parser": "ccma",
         "detail_selector": "article.article-main",
     },
+    {
+        "name": "YURAKUCHO MUSEUM",
+        "url": "https://yurakuchomuseum.jp/exhibitions/",
+        "api": "https://yurakuchomuseum.jp/cms-data/json/exhibitions.json",
+        "parser": "yurakucho",
+    },
 ]
 
 HEADERS = {
@@ -572,6 +578,52 @@ def parse_ccma(raw: str, today: str) -> list:
     return events
 
 
+YURAKUCHO_BASE = "https://yurakuchomuseum.jp"
+YURAKUCHO_GALLERIES = {
+    "gallery_a": "Gallery A",
+    "gallery_b": "Gallery B",
+    "gallery_a_b": "Gallery A&B",
+}
+
+
+def parse_yurakucho(raw: str, today: str) -> list:
+    data = json.loads(raw)
+    cutoff = _cutoff_date(today)
+    events = []
+    for item in data:
+        end_raw = (item.get("end_date") or "").strip()
+        end_date = end_raw.split(" ")[0] or None
+        start_date = (item.get("start_date") or "").strip() or None
+        if not start_date or not end_date or end_date < cutoff:
+            continue
+
+        gallery = YURAKUCHO_GALLERIES.get(item.get("gallery"))
+        venue = "YURAKUCHO MUSEUM" + (f" {gallery}" if gallery else "")
+
+        end_time = end_raw.split(" ")[1][:5] if " " in end_raw else None
+
+        dir_name = (item.get("dir_name") or "").strip()
+        if item.get("detail_show_flag") is True and dir_name:
+            url = f"{YURAKUCHO_BASE}/exhibitions/{dir_name}/"
+        else:
+            url = (item.get("official") or "").strip() or f"{YURAKUCHO_BASE}/exhibitions/"
+
+        image = item.get("image") or item.get("image_sp") or {}
+        image_path = (image.get("path") or "").strip()
+        image_url = f"{YURAKUCHO_BASE}{image_path}" if image_path else None
+
+        events.append(make_event(
+            title=(item.get("title") or "").strip(),
+            venue=venue,
+            start_date=start_date,
+            end_date=end_date,
+            end_time=end_time,
+            url=url,
+            image=image_url,
+        ))
+    return events
+
+
 PARSERS = {
     "mot": parse_mot,
     "tobikan": parse_tobikan,
@@ -581,4 +633,5 @@ PARSERS = {
     "warehouse": parse_warehouse,
     "chibamuse": parse_chibamuse,
     "ccma": parse_ccma,
+    "yurakucho": parse_yurakucho,
 }

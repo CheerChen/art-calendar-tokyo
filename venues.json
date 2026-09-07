@@ -113,6 +113,25 @@
     "confidence": "high",
     "verified": true
   },
+  "YURAKUCHO MUSEUM": {
+    "lat": 35.6767901,
+    "lng": 139.7635414,
+    "address": "東京都千代田区丸の内3-5-1 東京国際フォーラム地下1階",
+    "endpoint": "geo:35.676790,139.763541",
+    "source": "osm",
+    "matched_name": "東京国際フォーラム",
+    "name_en": "YURAKUCHO MUSEUM",
+    "description": "museum (B1F of 東京国際フォーラム)",
+    "kind": "place",
+    "confidence": "high",
+    "verified": false,
+    "note": "building-level coordinate from 東京国際フォーラム; YURAKUCHO MUSEUM is on B1F",
+    "aliases": [
+      "YURAKUCHO MUSEUM Gallery A",
+      "YURAKUCHO MUSEUM Gallery B",
+      "YURAKUCHO MUSEUM Gallery A&B"
+    ]
+  },
   "YUKIKOMIZUTANI": {
     "lat": 35.620684700000005,
     "lng": 139.7485642,
